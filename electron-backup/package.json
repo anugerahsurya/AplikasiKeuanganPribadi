@@ -1,0 +1,60 @@
+{
+  "name": "ituang",
+  "version": "1.0.0",
+  "description": "Aplikasi Manajemen Keuangan Desktop",
+  "author": "Anugerah Surya",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-packager . Ituang --platform=win32 --arch=x64 --out=dist --overwrite --ignore=dist --no-asar --icon=assets/icon.png --app-version=1.0.0 --electron-version=29.1.0 && node scripts/postbuild.js",
+    "build:installer": "electron-builder --win nsis --x64"
+  },
+  "build": {
+    "appId": "com.anugerahsurya.ituang",
+    "productName": "Ituang",
+    "directories": {
+      "output": "dist/installer"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Ituang",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/electron-builder/**",
+      "!node_modules/.cache/**",
+      "!dist/**",
+      "!download-page/**"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/sql.js/dist/sql-wasm.wasm",
+        "to": "sql-wasm.wasm"
+      }
+    ],
+    "asar": false
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "sql.js": "^1.14.1"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.0.0",
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3"
+  }
+}

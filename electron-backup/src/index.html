@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ituang — Masuk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <style>
+    html, body {
+      height: 100%; margin: 0; padding: 0;
+      background: var(--bg-base);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    /* ── Title Bar ─────────────────────────────────────────── */
+    .title-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 32px;
+      -webkit-app-region: drag;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 8px;
+      gap: 6px;
+      z-index: 9999;
+    }
+    .title-bar .win-btn {
+      -webkit-app-region: no-drag;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .title-bar .win-btn:hover { opacity: 0.75; }
+    .win-close  { background: #ff5f57; }
+    .win-min    { background: #febc2e; }
+    .win-max    { background: #28c840; }
+
+    /* ── Background ────────────────────────────────────────── */
+    .login-bg {
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(139,92,246,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse at 60% 80%, rgba(34,197,94,0.06) 0%, transparent 50%),
+        var(--bg-base);
+      z-index: 0;
+    }
+
+    /* ── Card ──────────────────────────────────────────────── */
+    .auth-card {
+      position: relative; z-index: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px 40px 36px;
+      width: 420px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+      animation: slideUp 0.45s cubic-bezier(0.22,1,0.36,1);
+      transition: height 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Logo ──────────────────────────────────────────────── */
+    .auth-logo {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 6px;
+    }
+    .auth-logo-icon {
+      width: 44px; height: 44px;
+      background: var(--accent-gradient);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .auth-logo span {
+      font-size: 24px; font-weight: 700;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .auth-subtitle {
+      font-size: 13px; color: var(--text-muted);
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    /* ── Mode tabs (Login / Register) ─────────────────────── */
+    .auth-tabs {
+      display: flex;
+      background: var(--bg-input);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 28px;
+      gap: 4px;
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 8px;
+      border: none; border-radius: 8px;
+      background: transparent;
+      font-family: 'Poppins', sans-serif;
+      font-size: 13px; font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .auth-tab.active {
+      background: var(--accent-gradient);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+    }
+    .auth-tab:not(.active):hover {
+      color: var(--text-primary);
+      background: rgba(255,255,255,0.05);
+    }
+
+    /* ── Form ──────────────────────────────────────────────── */
+    .form-group { margin-bottom: 18px; }
+    .form-label {
+      display: block; font-size: 11.5px; font-weight: 600;
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.08em; margin-bottom: 7px;
+    }
+    .form-input {
+      width: 100%; box-sizing: border-box;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 14px; color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+    .form-input::placeholder { color: var(--text-muted); }
+    .form-input.error {
+      border-color: rgba(239,68,68,0.6);
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+    }
+
+    /* Password strength indicator */
+    .pw-strength {
+      display: flex; gap: 4px; margin-top: 6px;
+      height: 3px;
+    }
+    .pw-strength-bar {
+      flex: 1; border-radius: 2px;
+      background: var(--border);
+      transition: background 0.3s;
+    }
+    .pw-strength-bar.active-weak   { background: #ef4444; }
+    .pw-strength-bar.active-medium { background: #f59e0b; }
+    .pw-strength-bar.active-strong { background: #22c55e; }
+    .pw-strength-label {
+      font-size: 10.5px; color: var(--text-muted);
+      margin-top: 4px; min-height: 14px;
+    }
+
+    /* ── Fingerprint Toggle ────────────────────────────────── */
+    .fp-toggle-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .fp-toggle-section:hover {
+      border-color: rgba(99,102,241,0.4);
+    }
+    .fp-toggle-section.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .fp-toggle-left {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .fp-toggle-icon { font-size: 20px; }
+    .fp-toggle-text { }
+    .fp-toggle-text strong {
+      display: block; font-size: 13px; font-weight: 600;
+      color: var(--text-primary);
+    }
+    .fp-toggle-text small {
+      font-size: 11px; color: var(--text-muted);
+    }
+    /* iOS-style switch */
+    .switch {
+      position: relative; width: 40px; height: 22px;
+      flex-shrink: 0;
+    }
+    .switch input { display: none; }
+    .switch-track {
+      position: absolute; inset: 0;
+      background: var(--border);
+      border-radius: 11px;
+      transition: background 0.25s;
+    }
+    .switch input:checked + .switch-track {
+      background: var(--accent);
+    }
+    .switch-thumb {
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 16px; height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.25s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .switch input:checked ~ .switch-thumb {
+      transform: translateX(18px);
+    }
+
+    /* ── Error / Info messages ─────────────────────────────── */
+    .auth-message {
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .auth-message.error {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #f87171;
+    }
+    .auth-message.success {
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.3);
+      color: #4ade80;
+    }
+    .auth-message.info {
+      background: rgba(99,102,241,0.1);
+      border: 1px solid rgba(99,102,241,0.3);
+      color: #a5b4fc;
+    }
+
+    /* ── Buttons ───────────────────────────────────────────── */
+    .btn-primary {
+      width: 100%;
+      background: var(--accent-gradient);
+      border: none; border-radius: 10px;
+      padding: 12px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 14px; font-weight: 600;
+      color: #fff; cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-bottom: 10px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary:hover  { opacity: 0.9; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-fingerprint {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 14px; font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .btn-fingerprint:hover {
+      border-color: rgba(122,171,138,0.4);
+      color: var(--accent-light);
+      background: rgba(122,171,138,0.06);
+    }
+    .btn-fingerprint:active { transform: scale(0.98); }
+    .btn-fingerprint:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-fingerprint.scanning {
+      border-color: rgba(122,171,138,0.5);
+      color: var(--accent-light);
+      background: rgba(122,171,138,0.08);
+    }
+    .fp-icon { font-size: 20px; display: inline-block; }
+    .btn-fingerprint.scanning .fp-icon {
+      animation: fp-pulse 1s ease-in-out infinite;
+    }
+    @keyframes fp-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.7; }
+    }
+
+    .divider-or {
+      display: flex; align-items: center; gap: 12px;
+      margin: 14px 0;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+    .divider-or::before, .divider-or::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .fp-status-text {
+      font-size: 11px; color: var(--text-muted);
+      text-align: center; margin-top: 6px;
+      min-height: 14px;
+    }
+
+    /* ── Loading spinner ───────────────────────────────────── */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Welcome badge (first-time) ────────────────────────── */
+    .welcome-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(99,102,241,0.12);
+      border: 1px solid rgba(99,102,241,0.25);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11.5px; font-weight: 500;
+      color: #a5b4fc;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="title-bar">
+    <button class="win-btn win-min"   onclick="api.minimize()" title="Minimize"></button>
+    <button class="win-btn win-max"   onclick="api.maximize()" title="Maximize"></button>
+    <button class="win-btn win-close" onclick="api.close()"    title="Close"></button>
+  </div>
+
+  <div class="login-bg"></div>
+
+  <div class="auth-card" id="auth-card">
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo-icon">💰</div>
+      <span>Ituang</span>
+    </div>
+    <p class="auth-subtitle" id="auth-subtitle">Masuk untuk mengelola keuangan Anda</p>
+
+    <!-- Tabs (hidden on first-time register) -->
+    <div class="auth-tabs" id="auth-tabs" style="display:none;">
+      <button class="auth-tab active" id="tab-login"    onclick="switchTab('login')">Masuk</button>
+      <button class="auth-tab"        id="tab-register" onclick="switchTab('register')">Daftar</button>
+    </div>
+
+    <!-- ═══════════════════════════════ LOGIN FORM ═══════════════════════════ -->
+    <div id="form-login">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input id="login-username" class="form-input" type="text"
+               placeholder="Masukkan username" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input id="login-password" class="form-input" type="password"
+               placeholder="Masukkan password" autocomplete="current-password" />
+      </div>
+
+      <div id="login-message" class="auth-message error"></div>
+
+      <button class="btn-primary" id="btn-login" onclick="doLogin()">
+        <span class="spinner" id="login-spinner"></span>
+        <span id="login-btn-text">Masuk</span>
+      </button>
+
+      <!-- Fingerprint section (shown if user enabled it) -->
+      <div id="fp-section" style="display:none;">
+        <div class="divider-or">atau</div>
+        <button class="btn-fingerprint" id="btn-fp" onclick="doFingerprint()">
+          <span class="fp-icon" id="fp-icon">🔐</span>
+          Masuk dengan Windows Hello
+        </button>
+        <div class="fp-status-text" id="fp-status">Fingerprint, PIN, atau Wajah</div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════ REGISTER FORM ═════════════════════════ -->
+    <div id="form-register" style="display:none;">
+      <div class="form-group">
+        <label class="form-label">Nama Lengkap</label>
+        <input id="reg-name" class="form-input" type="text"
+               placeholder="Contoh: Budi Santoso" autocomplete="name" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input id="reg-username" class="form-input" type="text"
+               placeholder="Contoh: budi123" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input id="reg-password" class="form-input" type="password"
+               placeholder="Minimal 6 karakter" autocomplete="new-password"
+               oninput="checkPasswordStrength(this.value)" />
+        <div class="pw-strength">
+          <div class="pw-strength-bar" id="ps-bar-1"></div>
+          <div class="pw-strength-bar" id="ps-bar-2"></div>
+          <div class="pw-strength-bar" id="ps-bar-3"></div>
+        </div>
+        <div class="pw-strength-label" id="ps-label"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Konfirmasi Password</label>
+        <input id="reg-confirm" class="form-input" type="password"
+               placeholder="Ulangi password" autocomplete="new-password" />
+      </div>
+
+      <!-- Windows Hello toggle -->
+      <div class="fp-toggle-section disabled" id="fp-toggle-wrap" title="Tidak tersedia"
+           onclick="toggleFingerprint()">
+        <div class="fp-toggle-left">
+          <span class="fp-toggle-icon">🔐</span>
+          <div class="fp-toggle-text">
+            <strong>Windows Hello</strong>
+            <small id="fp-toggle-desc">Memeriksa ketersediaan...</small>
+          </div>
+        </div>
+        <label class="switch" onclick="event.stopPropagation()">
+          <input type="checkbox" id="fp-toggle-input" disabled onchange="/* handled by wrapper */" />
+          <div class="switch-track"></div>
+          <div class="switch-thumb"></div>
+        </label>
+      </div>
+
+      <div id="register-message" class="auth-message error"></div>
+
+      <button class="btn-primary" id="btn-register" onclick="doRegister()">
+        <span class="spinner" id="register-spinner"></span>
+        <span id="register-btn-text">Buat Akun</span>
+      </button>
+    </div>
+  </div><!-- /.auth-card -->
+
+  <script>
+    // ─── State ─────────────────────────────────────────────────────────────
+    let currentTab      = 'login';
+    let biometricAvail  = false;
+    let isFirstTime     = false; // true = no users registered yet
+
+    // ─── Init ───────────────────────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', async () => {
+      // 1. Check if any user exists
+      try {
+        const hasUsers = await api.hasUsers();
+        isFirstTime = !hasUsers;
+      } catch(e) {
+        console.error('[hasUsers]', e);
+        isFirstTime = false;
+      }
+
+      // 2. Check biometric availability in parallel
+      try {
+        const bio = await api.checkBiometric();
+        biometricAvail = bio.available;
+      } catch(e) {
+        biometricAvail = false;
+      }
+
+      if (isFirstTime) {
+        // First install: show only register form
+        showRegisterMode();
+      } else {
+        // Returning user: show login form with tabs
+        document.getElementById('auth-tabs').style.display = 'flex';
+        showLoginMode();
+        // Show fingerprint button if username is typed and pref is enabled
+        setupLoginFingerprintHint();
+      }
+
+      // Setup enter keys
+      document.getElementById('login-password').addEventListener('keydown', e => {
+        if (e.key === 'Enter') doLogin();
+      });
+      document.getElementById('login-username').addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('login-password').focus();
+      });
+      document.getElementById('login-username').addEventListener('blur', onLoginUsernameBlur);
+      document.getElementById('reg-confirm').addEventListener('keydown', e => {
+        if (e.key === 'Enter') doRegister();
+      });
+    });
+
+    // ─── Tab switch ────────────────────────────────────────────────────────
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+      document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+      document.getElementById('form-login').style.display    = tab === 'login'    ? '' : 'none';
+      document.getElementById('form-register').style.display = tab === 'register' ? '' : 'none';
+      clearMessages();
+    }
+
+    function showLoginMode() {
+      document.getElementById('auth-subtitle').textContent = 'Masuk untuk mengelola keuangan Anda';
+      switchTab('login');
+    }
+
+    function showRegisterMode() {
+      document.getElementById('auth-subtitle').innerHTML =
+        '<span class="welcome-badge">✨ Selamat datang!</span><br>Buat akun untuk mulai mencatat keuangan Anda';
+      document.getElementById('form-login').style.display    = 'none';
+      document.getElementById('form-register').style.display = '';
+      currentTab = 'register';
+
+      // Setup biometric toggle for register form
+      setupBiometricToggle();
+    }
+
+    // ─── Biometric toggle (register form) ──────────────────────────────────
+    function setupBiometricToggle() {
+      const wrap  = document.getElementById('fp-toggle-wrap');
+      const input = document.getElementById('fp-toggle-input');
+      const desc  = document.getElementById('fp-toggle-desc');
+
+      if (biometricAvail) {
+        wrap.classList.remove('disabled');
+        wrap.title = '';
+        input.disabled = false;
+        desc.textContent = 'Gunakan fingerprint, PIN, atau wajah untuk masuk';
+      } else {
+        wrap.classList.add('disabled');
+        wrap.title = 'Windows Hello tidak tersedia di perangkat ini';
+        input.disabled = true;
+        desc.textContent = 'Tidak tersedia di perangkat ini';
+      }
+    }
+
+    function toggleFingerprint() {
+      const input = document.getElementById('fp-toggle-input');
+      if (input.disabled) return;
+      input.checked = !input.checked;
+    }
+
+    // ─── Login fingerprint auto-show ────────────────────────────────────────
+    async function onLoginUsernameBlur() {
+      const username = document.getElementById('login-username').value.trim();
+      if (!username) return;
+      try {
+        const pref = await api.getFingerprintPref(username);
+        const fpSection = document.getElementById('fp-section');
+        if (pref && pref.use_fingerprint && biometricAvail) {
+          fpSection.style.display = '';
+        } else {
+          fpSection.style.display = 'none';
+        }
+      } catch(e) { /* ignore */ }
+    }
+
+    function setupLoginFingerprintHint() {
+      // Will show/hide based on username blur above
+    }
+
+    // ─── Password strength ──────────────────────────────────────────────────
+    function checkPasswordStrength(val) {
+      const bars  = [
+        document.getElementById('ps-bar-1'),
+        document.getElementById('ps-bar-2'),
+        document.getElementById('ps-bar-3'),
+      ];
+      const label = document.getElementById('ps-label');
+
+      bars.forEach(b => b.className = 'pw-strength-bar');
+
+      if (!val) { label.textContent = ''; return; }
+
+      let score = 0;
+      if (val.length >= 6)  score++;
+      if (val.length >= 10) score++;
+      if (/[A-Z]/.test(val) || /[0-9]/.test(val) || /[^a-zA-Z0-9]/.test(val)) score++;
+
+      if (score === 1) {
+        bars[0].className = 'pw-strength-bar active-weak';
+        label.style.color = '#ef4444';
+        label.textContent = 'Lemah';
+      } else if (score === 2) {
+        bars[0].className = 'pw-strength-bar active-medium';
+        bars[1].className = 'pw-strength-bar active-medium';
+        label.style.color = '#f59e0b';
+        label.textContent = 'Sedang';
+      } else {
+        bars.forEach(b => b.className = 'pw-strength-bar active-strong');
+        label.style.color = '#22c55e';
+        label.textContent = 'Kuat';
+      }
+    }
+
+    // ─── Messages ───────────────────────────────────────────────────────────
+    function showMsg(id, text, type = 'error') {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.className = `auth-message ${type}`;
+      el.style.display = 'block';
+    }
+    function clearMessages() {
+      ['login-message','register-message'].forEach(id => {
+        const el = document.getElementById(id);
+        el.style.display = 'none';
+        el.textContent = '';
+      });
+    }
+
+    // ─── LOGIN ──────────────────────────────────────────────────────────────
+    async function doLogin() {
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      if (!username || !password) {
+        showMsg('login-message', 'Username dan password harus diisi.');
+        return;
+      }
+
+      setLoading('login', true);
+      document.getElementById('login-message').style.display = 'none';
+
+      try {
+        const result = await api.login({ username, password });
+        if (result.success) {
+          showMsg('login-message', '✅ Berhasil masuk!', 'success');
+          setTimeout(() => { window.location.href = 'app.html'; }, 500);
+        } else {
+          showMsg('login-message', result.message || 'Login gagal.');
+          document.getElementById('login-password').value = '';
+          document.getElementById('login-password').focus();
+        }
+      } catch(e) {
+        showMsg('login-message', 'Terjadi error. Coba lagi.');
+      }
+
+      setLoading('login', false);
+    }
+
+    // ─── REGISTER ───────────────────────────────────────────────────────────
+    async function doRegister() {
+      const displayName    = document.getElementById('reg-name').value.trim();
+      const username       = document.getElementById('reg-username').value.trim();
+      const password       = document.getElementById('reg-password').value;
+      const confirm        = document.getElementById('reg-confirm').value;
+      const useFingerprint = document.getElementById('fp-toggle-input').checked;
+
+      // Validations
+      if (!displayName) {
+        showMsg('register-message', 'Nama lengkap harus diisi.');
+        document.getElementById('reg-name').classList.add('error');
+        return;
+      }
+      if (!username || username.length < 3) {
+        showMsg('register-message', 'Username minimal 3 karakter.');
+        document.getElementById('reg-username').classList.add('error');
+        return;
+      }
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        showMsg('register-message', 'Username hanya boleh huruf, angka, dan underscore.');
+        document.getElementById('reg-username').classList.add('error');
+        return;
+      }
+      if (!password || password.length < 6) {
+        showMsg('register-message', 'Password minimal 6 karakter.');
+        document.getElementById('reg-password').classList.add('error');
+        return;
+      }
+      if (password !== confirm) {
+        showMsg('register-message', 'Konfirmasi password tidak cocok.');
+        document.getElementById('reg-confirm').classList.add('error');
+        return;
+      }
+
+      // Clear errors
+      ['reg-name','reg-username','reg-password','reg-confirm'].forEach(id => {
+        document.getElementById(id).classList.remove('error');
+      });
+
+      setLoading('register', true);
+      document.getElementById('register-message').style.display = 'none';
+
+      try {
+        const result = await api.register({ username, password, displayName, useFingerprint });
+        if (result.success) {
+          showMsg('register-message', `🎉 Akun berhasil dibuat! Selamat datang, ${displayName}!`, 'success');
+          setTimeout(() => { window.location.href = 'app.html'; }, 800);
+        } else {
+          showMsg('register-message', result.message || 'Registrasi gagal.');
+        }
+      } catch(e) {
+        showMsg('register-message', 'Terjadi error saat membuat akun.');
+      }
+
+      setLoading('register', false);
+    }
+
+    // ─── FINGERPRINT LOGIN ──────────────────────────────────────────────────
+    async function doFingerprint() {
+      const btn      = document.getElementById('btn-fp');
+      const iconEl   = document.getElementById('fp-icon');
+      const statusEl = document.getElementById('fp-status');
+
+      btn.classList.add('scanning');
+      btn.disabled = true;
+      iconEl.textContent = '🔐';
+      statusEl.textContent = 'Menunggu verifikasi Windows Hello...';
+      document.getElementById('login-message').style.display = 'none';
+
+      try {
+        const result = await api.loginFingerprint();
+        if (result.success) {
+          statusEl.textContent = '✅ Terverifikasi! Masuk...';
+          iconEl.textContent = '✅';
+          setTimeout(() => { window.location.href = 'app.html'; }, 600);
+        } else {
+          iconEl.textContent = '❌';
+          btn.classList.remove('scanning');
+          showMsg('login-message', result.message || 'Verifikasi gagal. Coba lagi.');
+          statusEl.textContent = 'Fingerprint, PIN, atau Wajah';
+          setTimeout(() => { iconEl.textContent = '🔐'; btn.disabled = false; }, 1500);
+        }
+      } catch (e) {
+        iconEl.textContent = '❌';
+        btn.classList.remove('scanning');
+        showMsg('login-message', 'Terjadi error saat verifikasi biometrik.');
+        statusEl.textContent = 'Fingerprint, PIN, atau Wajah';
+        setTimeout(() => { iconEl.textContent = '🔐'; btn.disabled = false; }, 1500);
+      }
+    }
+
+    // ─── Loading state ──────────────────────────────────────────────────────
+    function setLoading(mode, loading) {
+      if (mode === 'login') {
+        const btn     = document.getElementById('btn-login');
+        const spinner = document.getElementById('login-spinner');
+        const txt     = document.getElementById('login-btn-text');
+        btn.disabled          = loading;
+        spinner.style.display = loading ? 'block' : 'none';
+        txt.textContent       = loading ? 'Memeriksa...' : 'Masuk';
+      } else {
+        const btn     = document.getElementById('btn-register');
+        const spinner = document.getElementById('register-spinner');
+        const txt     = document.getElementById('register-btn-text');
+        btn.disabled          = loading;
+        spinner.style.display = loading ? 'block' : 'none';
+        txt.textContent       = loading ? 'Membuat akun...' : 'Buat Akun';
+      }
+    }
+  </script>
+</body>
+</html>
