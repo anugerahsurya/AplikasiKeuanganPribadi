@@ -6,13 +6,15 @@ import {
   HelpCircle, 
   Key,
   Save,
-  Cloud
+  Cloud,
+  Upload
 } from 'lucide-react';
 import { 
   getDbMode, 
   setDbMode, 
   syncFromSheets, 
-  syncToSheets 
+  syncToSheets,
+  importDatabase
 } from '../services/db';
 import { 
   getClientId, 
@@ -28,8 +30,30 @@ export default function Settings({ onToast, triggerRefresh }) {
   const [googleClientId, setGoogleClientId] = useState(getClientId());
   const [isGUserLoggedIn, setIsGUserLoggedIn] = useState(isLoggedIn());
   const [gUser, setGUser] = useState(getGoogleUser());
-  const [syncing, setSyncing] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleImportJson = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const parsedData = JSON.parse(event.target.result);
+        const success = await importDatabase(parsedData);
+        if (success) {
+          onToast('Berhasil mengimpor data dari desktop!');
+          triggerRefresh();
+        } else {
+          onToast('Format file JSON tidak valid.', 'error');
+        }
+      } catch (err) {
+        onToast('Gagal membaca file JSON. Pastikan file valid.', 'error');
+      }
+    };
+    reader.readAsText(file);
+  };
 
   // Sync state when Google OAuth state changes
   useEffect(() => {
@@ -116,9 +140,9 @@ export default function Settings({ onToast, triggerRefresh }) {
 
   return (
     <div className="page active">
-      <div className="grid">
+      <div className="grid grid-2" style={{ gap: '24px' }}>
         {/* DATABASE SETTINGS */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '20px', margin: 0 }}>
           <h2 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Database size={18} style={{ color: 'hsl(var(--color-accent))' }} />
             <span>Pilihan Database</span>
@@ -148,6 +172,32 @@ export default function Settings({ onToast, triggerRefresh }) {
             </div>
             <small style={{ marginTop: '6px', fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
               Mode Cloud menyinkronkan data langsung ke spreadsheet `Ituang_Database` di Google Drive Anda.
+            </small>
+          </div>
+        </div>
+
+        {/* IMPORT DATA SETTINGS */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '16px', margin: 0 }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Upload size={18} style={{ color: 'hsl(var(--color-accent))' }} />
+            <span>Import Data dari Desktop</span>
+          </h2>
+          <p style={{ fontSize: '12.5px', color: 'hsl(var(--text-secondary))', lineHeight: 1.5 }}>
+            Pindahkan data dari aplikasi desktop lama Anda. Jalankan script eksportir terlebih dahulu untuk menghasilkan file JSON.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', alignSelf: 'flex-start' }}>
+              <Upload size={14} />
+              <span>Pilih File ituang_import.json</span>
+              <input 
+                type="file" 
+                accept=".json" 
+                onChange={handleImportJson} 
+                style={{ display: 'none' }} 
+              />
+            </label>
+            <small style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
+              Catatan: Impor data akan menimpa data lokal saat ini. Cadangkan jika dirasa perlu.
             </small>
           </div>
         </div>

@@ -569,3 +569,30 @@ export async function deleteMemo(id) {
   await triggerSheetsSync();
   return { changes: 1 };
 }
+
+export async function importDatabase(data) {
+  if (!data) return false;
+  
+  dbState = {
+    accounts: Array.isArray(data.accounts) ? data.accounts : [],
+    savings: Array.isArray(data.savings) ? data.savings : [],
+    transactions: Array.isArray(data.transactions) ? data.transactions : [],
+    budgets: Array.isArray(data.budgets) ? data.budgets : [],
+    memos: Array.isArray(data.memos) ? data.memos : []
+  };
+  
+  // ensure fallback budget defaults
+  if (dbState.budgets.length === 0) {
+    dbState.budgets = DEFAULT_BUDGET_CATEGORIES.map((cat, idx) => ({
+      id: idx + 1,
+      category: cat,
+      amount: 0,
+      is_default: 1,
+      created_at: new Date().toISOString()
+    }));
+  }
+  
+  saveLocal();
+  await triggerSheetsSync();
+  return true;
+}
