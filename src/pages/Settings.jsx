@@ -42,6 +42,7 @@ export default function Settings({ onToast, triggerRefresh }) {
   const [googleClientId, setGoogleClientId] = useState(getClientId());
   const [isGUserLoggedIn, setIsGUserLoggedIn] = useState(isLoggedIn());
   const [gUser, setGUser] = useState(getGoogleUser());
+  const [spreadsheetUrl, setSpreadsheetUrl] = useState(getSpreadsheetUrl());
   const [showInstructions, setShowInstructions] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
@@ -156,7 +157,16 @@ export default function Settings({ onToast, triggerRefresh }) {
       setGUser(getGoogleUser());
       setDbMode('googlesheets');
       setLocalDbMode('googlesheets');
-      onToast('Berhasil terhubung dengan Akun Google Anda!');
+      onToast('Berhasil terhubung! Menyiapkan spreadsheet...');
+      // Buat/cari spreadsheet agar sheet ID langsung tersimpan
+      try {
+        await import('../services/googleSheets').then(m => m.getOrCreateSpreadsheet());
+        setSpreadsheetUrl(getSpreadsheetUrl());
+        onToast('Berhasil terhubung dengan Akun Google Anda! Spreadsheet siap. ✅');
+      } catch (sheetErr) {
+        console.error('Spreadsheet init error:', sheetErr);
+        onToast('Terhubung ke Google, tapi gagal membuka spreadsheet: ' + sheetErr.message, 'error');
+      }
       triggerRefresh();
     } catch (err) {
       console.error(err);
@@ -168,6 +178,7 @@ export default function Settings({ onToast, triggerRefresh }) {
     signOut();
     setIsGUserLoggedIn(false);
     setGUser(null);
+    setSpreadsheetUrl(null);
     setDbMode('local');
     setLocalDbMode('local');
     onToast('Koneksi Google diputuskan. Database dialihkan ke mode Lokal.');
@@ -178,9 +189,11 @@ export default function Settings({ onToast, triggerRefresh }) {
     setSyncing(true);
     try {
       await syncToSheets();
-      onToast('Berhasil mengunggah rekap data lokal ke Google Sheets!');
+      setSpreadsheetUrl(getSpreadsheetUrl());
+      onToast('Berhasil mengunggah rekap data lokal ke Google Sheets! ☁️');
     } catch (e) {
-      onToast('Gagal mengunggah data.', 'error');
+      console.error(e);
+      onToast('Gagal mengunggah data: ' + e.message, 'error');
     } finally {
       setSyncing(false);
     }
@@ -360,17 +373,40 @@ export default function Settings({ onToast, triggerRefresh }) {
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {getSpreadsheetUrl() && (
+                  {spreadsheetUrl ? (
                     <a
-                      href={getSpreadsheetUrl()}
+                      href={spreadsheetUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="btn btn-primary btn-sm"
                       style={{ display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
                     >
-                      <Cloud size={12} />
+                      <ExternalLink size={12} />
                       <span>Buka Google Sheets</span>
                     </a>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      disabled={syncing}
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      onClick={async () => {
+                        setSyncing(true);
+                        try {
+                          const { getOrCreateSpreadsheet } = await import('../services/googleSheets');
+                          await getOrCreateSpreadsheet();
+                          setSpreadsheetUrl(getSpreadsheetUrl());
+                          onToast('Spreadsheet berhasil ditemukan/dibuat! ✅');
+                        } catch(e) {
+                          onToast('Gagal menyiapkan spreadsheet: ' + e.message, 'error');
+                        } finally {
+                          setSyncing(false);
+                        }
+                      }}
+                    >
+                      <Cloud size={12} />
+                      <span>Lihat Spreadsheet</span>
+                    </button>
                   )}
                   <button 
                     className="btn btn-success btn-sm" 

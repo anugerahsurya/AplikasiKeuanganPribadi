@@ -66,21 +66,42 @@ export function getSpreadsheetUrl() {
 }
 
 /**
+ * Menunggu sampai Google Identity Services library selesai dimuat
+ * (penting untuk HP/perangkat lambat karena script menggunakan async defer)
+ */
+function waitForGoogleLibrary(timeoutMs = 10000) {
+  return new Promise((resolve, reject) => {
+    if (typeof window.google !== 'undefined') {
+      resolve();
+      return;
+    }
+    const interval = setInterval(() => {
+      if (typeof window.google !== 'undefined') {
+        clearInterval(interval);
+        clearTimeout(timeout);
+        resolve();
+      }
+    }, 100);
+    const timeout = setTimeout(() => {
+      clearInterval(interval);
+      reject(new Error('Timeout menunggu Google library'));
+    }, timeoutMs);
+  });
+}
+
+/**
  * Triggers Google OAuth 2.0 Flow to get an access token
  */
-export function signIn() {
+export async function signIn() {
+  const clientId = getClientId();
+  if (!clientId) {
+    throw new Error('Google Client ID belum diatur. Harap atur di menu Pengaturan.');
+  }
+
+  // Tunggu sampai Google library siap (penting untuk HP dengan koneksi lambat)
+  await waitForGoogleLibrary();
+
   return new Promise((resolve, reject) => {
-    const clientId = getClientId();
-    if (!clientId) {
-      reject(new Error('Google Client ID belum diatur. Harap atur di menu Pengaturan.'));
-      return;
-    }
-
-    if (typeof window.google === 'undefined') {
-      reject(new Error('Google API Client library tidak termuat. Periksa koneksi internet Anda.'));
-      return;
-    }
-
     try {
       const tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: clientId,
@@ -288,8 +309,14 @@ export async function syncAllToGoogleSheets(data) {
  */
 export async function syncAllFromGoogleSheets() {
   const sheetId = await getOrCreateSpreadsheet();
-  const ranges = 'accounts!A:E&ranges=savings!A:C&ranges=transactions!A:L&ranges=budgets!A:E&ranges=memos!A:E';
-  const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values:batchGet?ranges=${ranges}`;
+  const ranges = [
+    'accounts!A:E',
+    'savings!A:D',
+    'transactions!A:L',
+    'budgets!A:E',
+    'memos!A:E'
+  ].map(r => `ranges=${encodeURIComponent(r)}`).join('&');
+  const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values:batchGet?${ranges}`;
   
   const result = await gapiFetch(batchUrl);
   
