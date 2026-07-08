@@ -20,9 +20,9 @@ export default function Sidebar({ currentPage, setCurrentPage, onToast }) {
   const googleUser = getGoogleUser();
 
   const menuUtama = [
+    { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
     { id: 'overview', label: 'Ringkasan Bulanan', icon: BarChart3 },
     { id: 'transactions', label: 'Transaksi', icon: ArrowRightLeft },
-    { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
   ];
 
   const menuManajemen = [

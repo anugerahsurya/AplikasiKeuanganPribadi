@@ -268,7 +268,7 @@ export async function addTransaction(data) {
     item_name, amount, type, category,
     account_from_id, account_to_id,
     savings_from_id, savings_to_id,
-    notes, created_at
+    notes, created_at, exclude_from_quota
   } = data;
 
   const numAmount = Number(amount);
@@ -285,7 +285,8 @@ export async function addTransaction(data) {
     savings_from_id: savings_from_id ? Number(savings_from_id) : null,
     savings_to_id: savings_to_id ? Number(savings_to_id) : null,
     notes: notes || null,
-    created_at: now
+    created_at: now,
+    exclude_from_quota: exclude_from_quota ? 1 : 0
   };
 
   dbState.transactions.push(newTx);

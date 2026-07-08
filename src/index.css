@@ -586,6 +586,7 @@ select.form-control {
 .badge-saving { background-color: hsl(var(--color-success-bg)); color: hsl(var(--color-success)); }
 .badge-budget { background-color: hsl(var(--color-accent) / 0.1); color: hsl(var(--color-accent)); }
 .badge-custom { background-color: hsl(var(--color-warning-bg)); color: hsl(var(--color-warning)); }
+.badge-nonquota { background-color: hsl(var(--text-muted) / 0.15); color: hsl(var(--text-muted)); }
 
 /* --------------------------------------------------------------------------
    TRANSACTION ITEMS

@@ -200,7 +200,7 @@ async function writeHeaders(sheetId) {
     data: [
       { range: 'accounts!A1:E1', values: [['id', 'name', 'category', 'balance', 'created_at']] },
       { range: 'savings!A1:C1', values: [['id', 'name', 'balance', 'created_at']] },
-      { range: 'transactions!A1:K1', values: [['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'notes', 'created_at']] },
+      { range: 'transactions!A1:L1', values: [['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'notes', 'created_at', 'exclude_from_quota']] },
       { range: 'budgets!A1:E1', values: [['id', 'category', 'amount', 'is_default', 'created_at']] },
       { range: 'memos!A1:E1', values: [['id', 'title', 'content', 'color', 'date']] }
     ]
@@ -234,7 +234,7 @@ export async function syncAllToGoogleSheets(data) {
       // Clear ranges first (from A2 downwards)
       { range: 'accounts!A2:Z1000', values: Array(1000).fill(Array(5).fill('')) },
       { range: 'savings!A2:Z1000', values: Array(1000).fill(Array(4).fill('')) },
-      { range: 'transactions!A2:Z10000', values: Array(10000).fill(Array(11).fill('')) },
+      { range: 'transactions!A2:Z10000', values: Array(10000).fill(Array(12).fill('')) },
       { range: 'budgets!A2:Z1000', values: Array(1000).fill(Array(5).fill('')) },
       { range: 'memos!A2:Z1000', values: Array(1000).fill(Array(5).fill('')) }
     ]
@@ -256,8 +256,8 @@ export async function syncAllToGoogleSheets(data) {
         values: formatRows(data.savings, ['id', 'name', 'balance', 'created_at'])
       },
       {
-        range: `transactions!A2:K${data.transactions.length + 1}`,
-        values: formatRows(data.transactions, ['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'notes', 'created_at'])
+        range: `transactions!A2:L${data.transactions.length + 1}`,
+        values: formatRows(data.transactions, ['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'notes', 'created_at', 'exclude_from_quota'])
       },
       {
         range: `budgets!A2:E${data.budgets.length + 1}`,
@@ -283,7 +283,7 @@ export async function syncAllToGoogleSheets(data) {
  */
 export async function syncAllFromGoogleSheets() {
   const sheetId = await getOrCreateSpreadsheet();
-  const ranges = 'accounts!A:E&ranges=savings!A:C&ranges=transactions!A:K&ranges=budgets!A:E&ranges=memos!A:E';
+  const ranges = 'accounts!A:E&ranges=savings!A:C&ranges=transactions!A:L&ranges=budgets!A:E&ranges=memos!A:E';
   const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values:batchGet?ranges=${ranges}`;
   
   const result = await gapiFetch(batchUrl);
@@ -319,7 +319,7 @@ export async function syncAllFromGoogleSheets() {
   return {
     accounts: parseSheet(valueRanges[0], ['id', 'name', 'category', 'balance', 'created_at']),
     savings: parseSheet(valueRanges[1], ['id', 'name', 'balance', 'created_at']),
-    transactions: parseSheet(valueRanges[2], ['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'notes', 'created_at']),
+    transactions: parseSheet(valueRanges[2], ['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'notes', 'created_at', 'exclude_from_quota']),
     budgets: parseSheet(valueRanges[3], ['id', 'category', 'amount', 'is_default', 'created_at']),
     memos: parseSheet(valueRanges[4], ['id', 'title', 'content', 'color', 'date'])
   };

@@ -19,7 +19,7 @@ import Settings from './pages/Settings';
 import Guide from './pages/Guide';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('overview');
+  const [currentPage, setCurrentPage] = useState('dashboard');
   const [dbInitialized, setDbInitialized] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [toasts, setToasts] = useState([]);

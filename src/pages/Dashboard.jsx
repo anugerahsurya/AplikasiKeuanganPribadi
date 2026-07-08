@@ -22,6 +22,7 @@ import {
   LineElement, 
   PointElement, 
   ArcElement, 
+  LineController,
   Title, 
   Tooltip, 
   Legend 
@@ -37,6 +38,7 @@ ChartJS.register(
   LineElement, 
   PointElement, 
   ArcElement, 
+  LineController,
   Title, 
   Tooltip, 
   Legend

@@ -12,6 +12,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
   const [notes, setNotes] = useState('');
   const [fromId, setFromId] = useState('');
   const [toId, setToId] = useState('');
+  const [includeInQuota, setIncludeInQuota] = useState(true);
 
   const getLocalDateString = (d) => {
     const tzoffset = d.getTimezoneOffset() * 60000;
@@ -29,9 +30,15 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
         setItemName(editingTx.item_name);
         setAmount(editingTx.amount.toString());
         setNotes(editingTx.notes || '');
-        setFromId(editingTx.account_from_id ? `account:${editingTx.account_from_id}` : '');
-        setToId(editingTx.account_to_id ? `account:${editingTx.account_to_id}` : '');
+        
+        const fId = editingTx.account_from_id ? `account:${editingTx.account_from_id}` : editingTx.savings_from_id ? `saving:${editingTx.savings_from_id}` : '';
+        setFromId(fId);
+
+        const tId = editingTx.account_to_id ? `account:${editingTx.account_to_id}` : editingTx.savings_to_id ? `saving:${editingTx.savings_to_id}` : '';
+        setToId(tId);
+
         setCreatedAt(editingTx.created_at ? getLocalDateString(new Date(editingTx.created_at)) : getLocalDateString(new Date()));
+        setIncludeInQuota(!(editingTx.exclude_from_quota === 1 || editingTx.exclude_from_quota === '1' || editingTx.exclude_from_quota === true));
       } else {
         // Reset to default
         setType('expense');
@@ -42,6 +49,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
         setFromId('');
         setToId('');
         setCreatedAt(getLocalDateString(new Date()));
+        setIncludeInQuota(true);
       }
     }
   }, [isOpen, editingTx]);
@@ -53,6 +61,13 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
       setCategory('Pindah Dana');
     } else if (category === 'Pindah Dana') {
       setCategory('Makanan');
+    }
+  };
+
+  const handleCategoryChange = (cat) => {
+    setCategory(cat);
+    if (cat === 'Investasi') {
+      setIncludeInQuota(false);
     }
   };
 
@@ -88,18 +103,25 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
       notes: notes.trim() || null,
       account_from_id: null,
       account_to_id: null,
+      savings_from_id: null,
+      savings_to_id: null,
       created_at: finalDate.toISOString(),
+      exclude_from_quota: type === 'expense' ? !includeInQuota : true,
     };
 
     // Parse source/destination accounts
     if (type === 'expense' || type === 'transfer') {
       if (fromId.startsWith('account:')) {
         data.account_from_id = parseInt(fromId.split(':')[1]);
+      } else if (fromId.startsWith('saving:')) {
+        data.savings_from_id = parseInt(fromId.split(':')[1]);
       }
     }
     if (type === 'income' || type === 'transfer') {
       if (toId.startsWith('account:')) {
         data.account_to_id = parseInt(toId.split(':')[1]);
+      } else if (toId.startsWith('saving:')) {
+        data.savings_to_id = parseInt(toId.split(':')[1]);
       }
     }
 
@@ -158,7 +180,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
                   key={cat}
                   type="button"
                   className={`cat-tab ${category === cat ? 'active' : ''}`}
-                  onClick={() => setCategory(cat)}
+                  onClick={() => handleCategoryChange(cat)}
                   style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <CategoryIcon category={cat} size={14} />
@@ -208,6 +230,22 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
           />
         </div>
 
+        {/* Kuota Harian Checkbox (Hanya untuk Pengeluaran) */}
+        {type === 'expense' && (
+          <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', marginTop: '4px', marginBottom: '16px' }}>
+            <input
+              type="checkbox"
+              id="include_quota"
+              checked={includeInQuota}
+              onChange={(e) => setIncludeInQuota(e.target.checked)}
+              style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0 }}
+            />
+            <label htmlFor="include_quota" style={{ fontSize: '13px', fontWeight: 500, cursor: 'pointer', userSelect: 'none', color: 'hsl(var(--text-primary))', textTransform: 'none', letterSpacing: 'normal' }}>
+              Hitung dalam kuota harian (Maks Rp 100.000 / hari)
+            </label>
+          </div>
+        )}
+
         {/* Dynamic Account Select Fields */}
         <div className="grid grid-2" style={{ gap: '16px', margin: '8px 0' }}>
           {(type === 'expense' || type === 'transfer') && (
@@ -216,15 +254,34 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
               <select
                 className="form-control"
                 value={fromId}
-                onChange={(e) => setFromId(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFromId(val);
+                  if (val.startsWith('saving:')) {
+                    setIncludeInQuota(false);
+                  }
+                }}
                 required
               >
-                <option value="">— Pilih Rekening —</option>
-                {accounts.map(acc => (
-                  <option key={acc.id} value={`account:${acc.id}`}>
-                    {acc.name} ({acc.category}) — Rp {acc.balance.toLocaleString('id-ID')}
-                  </option>
-                ))}
+                <option value="">— Pilih Rekening / Celengan —</option>
+                {accounts.length > 0 && (
+                  <optgroup label="Rekening / Dompet">
+                    {accounts.map(acc => (
+                      <option key={acc.id} value={`account:${acc.id}`}>
+                        {acc.name} ({acc.category}) — Rp {acc.balance.toLocaleString('id-ID')}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {savings.length > 0 && (
+                  <optgroup label="Celengan Tabungan">
+                    {savings.map(sav => (
+                      <option key={sav.id} value={`saving:${sav.id}`}>
+                        {sav.name} — Rp {sav.balance.toLocaleString('id-ID')}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
           )}
@@ -235,15 +292,34 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
               <select
                 className="form-control"
                 value={toId}
-                onChange={(e) => setToId(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setToId(val);
+                  if (val.startsWith('saving:')) {
+                    setIncludeInQuota(false);
+                  }
+                }}
                 required
               >
-                <option value="">— Pilih Rekening —</option>
-                {accounts.map(acc => (
-                  <option key={acc.id} value={`account:${acc.id}`}>
-                    {acc.name} ({acc.category}) — Rp {acc.balance.toLocaleString('id-ID')}
-                  </option>
-                ))}
+                <option value="">— Pilih Rekening / Celengan —</option>
+                {accounts.length > 0 && (
+                  <optgroup label="Rekening / Dompet">
+                    {accounts.map(acc => (
+                      <option key={acc.id} value={`account:${acc.id}`}>
+                        {acc.name} ({acc.category}) — Rp {acc.balance.toLocaleString('id-ID')}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {savings.length > 0 && (
+                  <optgroup label="Celengan Tabungan">
+                    {savings.map(sav => (
+                      <option key={sav.id} value={`saving:${sav.id}`}>
+                        {sav.name} — Rp {sav.balance.toLocaleString('id-ID')}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
           )}

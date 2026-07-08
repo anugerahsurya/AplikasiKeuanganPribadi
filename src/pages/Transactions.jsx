@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, RefreshCw, FileDown, Search, Edit3, Trash2, Inbox, CheckSquare, Square, Calendar } from 'lucide-react';
-import { getAccounts, getAllTransactions, addTransaction, deleteTransaction, updateTransactionsDate } from '../services/db';
+import { getAccounts, getAllTransactions, addTransaction, deleteTransaction, updateTransactionsDate, getSavings } from '../services/db';
 import { fmtRp, fmtDate } from '../utils/format';
 import { getGoogleUser, isLoggedIn } from '../services/googleSheets';
 import TransactionModal from '../components/TransactionModal';
@@ -10,6 +10,7 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
   const [transactions, setTransactions] = useState([]);
   const [filteredTxs, setFilteredTxs] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [savings, setSavings] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   
@@ -63,8 +64,10 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
   const loadData = () => {
     const allTxs = getAllTransactions();
     const accs = getAccounts();
+    const savs = getSavings();
     setTransactions(allTxs);
     setAccounts(accs);
+    setSavings(savs);
     applyFilters(allTxs, filter, search);
   };
 
@@ -259,6 +262,9 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
                       <span className={`badge badge-${tx.type}`}>
                         {tx.type === 'income' ? 'Masuk' : tx.type === 'expense' ? 'Keluar' : 'Transfer'}
                       </span>
+                      {(tx.exclude_from_quota === 1 || tx.exclude_from_quota === '1' || tx.exclude_from_quota === true) && (
+                        <span className="badge badge-nonquota" title="Transaksi ini dikecualikan dari kuota harian">Luar Kuota</span>
+                      )}
                       <span>· {tx.category}</span>
                       {platform && <span>· {platform}</span>}
                       <span>· {fmtDate(tx.created_at)}</span>
@@ -346,6 +352,9 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
                   <td>{new Date(tx.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                   <td>
                     <strong>{tx.item_name}</strong>
+                    {(tx.exclude_from_quota === 1 || tx.exclude_from_quota === '1' || tx.exclude_from_quota === true) && (
+                      <span style={{ fontSize: '9px', color: '#64748b', marginLeft: '6px', backgroundColor: '#f1f5f9', padding: '1px 4px', borderRadius: '3px', border: '1px solid #e2e8f0' }}>Luar Kuota</span>
+                    )}
                     {tx.notes && <div style={{ fontSize: '10px', color: '#64748b', fontStyle: 'italic' }}>Notes: {tx.notes}</div>}
                   </td>
                   <td>{tx.category}</td>
@@ -447,6 +456,7 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
         onSave={handleSaveTransaction}
         editingTx={editingTx}
         accounts={accounts}
+        savings={savings}
       />
     </div>
   );

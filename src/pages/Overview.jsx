@@ -17,7 +17,7 @@ import {
   Edit3, 
   Trash2 
 } from 'lucide-react';
-import { getAccounts, getTransactionsByPeriod, addTransaction, deleteTransaction, getDashboardSummary } from '../services/db';
+import { getAccounts, getTransactionsByPeriod, addTransaction, deleteTransaction, getDashboardSummary, getSavings } from '../services/db';
 import { fmtRp, fmtDate, MONTHS } from '../utils/format';
 import TransactionModal from '../components/TransactionModal';
 import CategoryIcon from '../components/CategoryIcon';
@@ -29,6 +29,7 @@ export default function Overview({ setCurrentPage, onToast, refreshTrigger, trig
   });
 
   const [accounts, setAccounts] = useState([]);
+  const [savings, setSavings] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState({ income: 0, expense: 0, net: 0 });
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,10 +43,12 @@ export default function Overview({ setCurrentPage, onToast, refreshTrigger, trig
 
   const loadData = () => {
     const accs = getAccounts();
+    const savs = getSavings();
     const txs = getTransactionsByPeriod(period.year, period.month);
     const sum = getDashboardSummary(period.year, period.month);
     
     setAccounts(accs);
+    setSavings(savs);
     setTransactions(txs);
     setSummary(sum);
   };
@@ -92,7 +95,7 @@ export default function Overview({ setCurrentPage, onToast, refreshTrigger, trig
 
     const totalQuota = DAILY_QUOTA * daysElapsed;
     const totalExpense = transactions
-      .filter(t => t.type === 'expense')
+      .filter(t => t.type === 'expense' && t.exclude_from_quota !== 1 && t.exclude_from_quota !== '1' && t.exclude_from_quota !== true)
       .reduce((sum, t) => sum + t.amount, 0);
 
     const remaining = totalQuota - totalExpense;
@@ -324,6 +327,9 @@ export default function Overview({ setCurrentPage, onToast, refreshTrigger, trig
                       <span className={`badge badge-${tx.type}`}>
                         {tx.type === 'income' ? 'Masuk' : tx.type === 'expense' ? 'Keluar' : 'Transfer'}
                       </span>
+                      {(tx.exclude_from_quota === 1 || tx.exclude_from_quota === '1' || tx.exclude_from_quota === true) && (
+                        <span className="badge badge-nonquota" title="Transaksi ini dikecualikan dari kuota harian">Luar Kuota</span>
+                      )}
                       <span>· {tx.category}</span>
                       {platform && <span>· {platform}</span>}
                       <span>· {fmtDate(tx.created_at)}</span>
@@ -354,6 +360,7 @@ export default function Overview({ setCurrentPage, onToast, refreshTrigger, trig
         onSave={handleSaveTransaction}
         editingTx={editingTx}
         accounts={accounts}
+        savings={savings}
       />
     </div>
   );

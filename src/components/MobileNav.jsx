@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  BarChart3, 
+  TrendingUp, 
   ArrowRightLeft, 
   PiggyBank, 
   Target, 
@@ -9,7 +9,7 @@ import {
 
 export default function MobileNav({ currentPage, setCurrentPage }) {
   const navItems = [
-    { id: 'overview', label: 'Ringkasan', icon: BarChart3 },
+    { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
     { id: 'transactions', label: 'Transaksi', icon: ArrowRightLeft },
     { id: 'savings', label: 'Tabungan', icon: PiggyBank },
     { id: 'budgeting', label: 'Budgeting', icon: Target },
@@ -21,7 +21,7 @@ export default function MobileNav({ currentPage, setCurrentPage }) {
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = currentPage === item.id || 
-          (item.id === 'settings' && ['accounts', 'memo', 'dashboard'].includes(currentPage));
+          (item.id === 'settings' && ['accounts', 'memo', 'overview'].includes(currentPage));
         
         return (
           <button
