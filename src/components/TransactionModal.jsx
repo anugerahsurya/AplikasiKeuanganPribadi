@@ -3,6 +3,7 @@ import Modal from './Modal';
 import { CAT_ICONS } from '../utils/format';
 import CategoryIcon from './CategoryIcon';
 import { ArrowUpRight, ArrowDownLeft, RefreshCw } from 'lucide-react';
+import { getBudgets } from '../services/db';
 
 export default function TransactionModal({ isOpen, onClose, onSave, editingTx, accounts = [], savings = [] }) {
   const [type, setType] = useState('expense'); // 'income' | 'expense' | 'transfer'
@@ -13,6 +14,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
   const [fromId, setFromId] = useState('');
   const [toId, setToId] = useState('');
   const [includeInQuota, setIncludeInQuota] = useState(true);
+  const [categories, setCategories] = useState([]);
 
   const getLocalDateString = (d) => {
     const tzoffset = d.getTimezoneOffset() * 60000;
@@ -24,6 +26,12 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
   // Synchronize when editingTx or modal state changes
   useEffect(() => {
     if (isOpen) {
+      // Load active categories from budgets, with fallback to default categories
+      const budgets = getBudgets();
+      const catList = budgets.length > 0 ? budgets.map(b => b.category) : Object.keys(CAT_ICONS).filter(cat => cat !== 'Pindah Dana');
+      const uniqueCats = Array.from(new Set(catList));
+      setCategories(uniqueCats);
+
       if (editingTx) {
         setType(editingTx.type);
         setCategory(editingTx.category);
@@ -175,7 +183,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
           <div className="form-group">
             <label className="form-label">Kategori Kegiatan</label>
             <div className="cat-tabs" style={{ maxHeight: '135px', overflowY: 'auto', padding: '4px' }}>
-              {Object.keys(CAT_ICONS).filter(cat => cat !== 'Pindah Dana').map((cat) => (
+              {categories.filter(cat => cat !== 'Pindah Dana').map((cat) => (
                 <button
                   key={cat}
                   type="button"

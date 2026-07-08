@@ -371,7 +371,7 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
           </tbody>
         </table>
 
-        <div style={{ marginTop: '50px', display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b' }}>
+        <div className="report-footer">
           <div>Dokumen ini digenerate secara otomatis melalui aplikasi Ituang Web.</div>
           <div>Halaman 1 dari 1</div>
         </div>
