@@ -125,11 +125,13 @@ export default function Sidebar({ currentPage, setCurrentPage, onToast }) {
           </div>
         ) : (
           <div className="sidebar-user">
-            <div className="sidebar-user-avatar" style={{ background: 'hsl(var(--text-muted) / 0.2)' }}>
-              <User size={18} style={{ color: 'hsl(var(--text-secondary))' }} />
+            <div className="sidebar-user-avatar">
+              {(localStorage.getItem('ituang_user_name') || 'Pengguna Lokal').substring(0, 2).toUpperCase()}
             </div>
             <div>
-              <div className="sidebar-user-name">Pengguna Lokal</div>
+              <div className="sidebar-user-name" title={localStorage.getItem('ituang_user_name') || 'Pengguna Lokal'}>
+                {localStorage.getItem('ituang_user_name') || 'Pengguna Lokal'}
+              </div>
               <div className="sidebar-user-role">Offline / Local Storage</div>
             </div>
           </div>

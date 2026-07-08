@@ -13,6 +13,13 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
   const [fromId, setFromId] = useState('');
   const [toId, setToId] = useState('');
 
+  const getLocalDateString = (d) => {
+    const tzoffset = d.getTimezoneOffset() * 60000;
+    return new Date(d - tzoffset).toISOString().slice(0, 10);
+  };
+
+  const [createdAt, setCreatedAt] = useState(() => getLocalDateString(new Date()));
+
   // Synchronize when editingTx or modal state changes
   useEffect(() => {
     if (isOpen) {
@@ -24,6 +31,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
         setNotes(editingTx.notes || '');
         setFromId(editingTx.account_from_id ? `account:${editingTx.account_from_id}` : '');
         setToId(editingTx.account_to_id ? `account:${editingTx.account_to_id}` : '');
+        setCreatedAt(editingTx.created_at ? getLocalDateString(new Date(editingTx.created_at)) : getLocalDateString(new Date()));
       } else {
         // Reset to default
         setType('expense');
@@ -33,6 +41,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
         setNotes('');
         setFromId('');
         setToId('');
+        setCreatedAt(getLocalDateString(new Date()));
       }
     }
   }, [isOpen, editingTx]);
@@ -58,6 +67,19 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
       return;
     }
 
+    let finalDate = new Date();
+    if (createdAt) {
+      const [year, month, day] = createdAt.split('-').map(Number);
+      finalDate.setFullYear(year, month - 1, day);
+      if (editingTx && editingTx.created_at) {
+        const orig = new Date(editingTx.created_at);
+        finalDate.setHours(orig.getHours(), orig.getMinutes(), orig.getSeconds(), orig.getMilliseconds());
+      } else {
+        const now = new Date();
+        finalDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+      }
+    }
+
     const data = {
       item_name: itemName.trim(),
       amount: parseFloat(amount),
@@ -66,6 +88,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
       notes: notes.trim() || null,
       account_from_id: null,
       account_to_id: null,
+      created_at: finalDate.toISOString(),
     };
 
     // Parse source/destination accounts
@@ -145,6 +168,18 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
             </div>
           </div>
         )}
+
+        {/* Tanggal Transaksi */}
+        <div className="form-group">
+          <label className="form-label">Tanggal Transaksi</label>
+          <input
+            type="date"
+            className="form-control"
+            value={createdAt}
+            onChange={(e) => setCreatedAt(e.target.value)}
+            required
+          />
+        </div>
 
         {/* Keterangan */}
         <div className="form-group">

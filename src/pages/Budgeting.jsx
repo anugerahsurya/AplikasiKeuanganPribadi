@@ -1,10 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, RefreshCw, Trash2, BarChart2, Target, Tag } from 'lucide-react';
 import { Bar } from 'react-chartjs-2';
+import { 
+  Chart as ChartJS, 
+  CategoryScale, 
+  LinearScale, 
+  BarElement, 
+  LineElement, 
+  PointElement, 
+  Title, 
+  Tooltip, 
+  Legend 
+} from 'chart.js';
 import { getBudgets, getBudgetProgress, addBudget, updateBudget, deleteBudget } from '../services/db';
 import { fmtRp, MONTHS } from '../utils/format';
 import Modal from '../components/Modal';
 import CategoryIcon from '../components/CategoryIcon';
+
+ChartJS.register(
+  CategoryScale, 
+  LinearScale, 
+  BarElement, 
+  LineElement, 
+  PointElement, 
+  Title, 
+  Tooltip, 
+  Legend
+);
 
 export default function Budgeting({ onToast, refreshTrigger, triggerRefresh }) {
   const [period, setPeriod] = useState(() => {

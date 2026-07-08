@@ -387,6 +387,33 @@ export async function deleteTransaction(id) {
   return { changes: 1 };
 }
 
+export async function updateTransactionsDate(ids, newDate) {
+  let updatedCount = 0;
+  dbState.transactions = dbState.transactions.map(t => {
+    if (ids.includes(t.id)) {
+      updatedCount++;
+      let finalDate;
+      try {
+        const origDate = new Date(t.created_at);
+        const nextDate = new Date(newDate);
+        nextDate.setHours(origDate.getHours(), origDate.getMinutes(), origDate.getSeconds(), origDate.getMilliseconds());
+        finalDate = nextDate.toISOString();
+      } catch (e) {
+        finalDate = new Date(newDate).toISOString();
+      }
+      return { ...t, created_at: finalDate };
+    }
+    return t;
+  });
+
+  if (updatedCount > 0) {
+    saveLocal();
+    await triggerSheetsSync();
+    return { changes: updatedCount };
+  }
+  return { changes: 0 };
+}
+
 // ── DASHBOARD SUMMARY ──────────────────────────────────────────────────
 
 export function getDashboardSummary(year, month) {

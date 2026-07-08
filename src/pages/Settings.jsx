@@ -7,7 +7,8 @@ import {
   Key,
   Save,
   Cloud,
-  Upload
+  Upload,
+  User
 } from 'lucide-react';
 import { 
   getDbMode, 
@@ -32,6 +33,21 @@ export default function Settings({ onToast, triggerRefresh }) {
   const [gUser, setGUser] = useState(getGoogleUser());
   const [showInstructions, setShowInstructions] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  
+  // User Profile Name State
+  const [localName, setLocalNameState] = useState(() => localStorage.getItem('ituang_user_name') || '');
+
+  const handleSaveProfile = (e) => {
+    e.preventDefault();
+    const name = localName.trim();
+    if (!name) {
+      onToast('Nama profil tidak boleh kosong.', 'error');
+      return;
+    }
+    localStorage.setItem('ituang_user_name', name);
+    onToast('Nama profil berhasil diperbarui! 👤');
+    triggerRefresh();
+  };
 
   const handleImportJson = (e) => {
     const file = e.target.files[0];
@@ -141,6 +157,33 @@ export default function Settings({ onToast, triggerRefresh }) {
   return (
     <div className="page active">
       <div className="grid grid-2" style={{ gap: '24px' }}>
+        {/* PROFILE SETTINGS */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '16px', margin: 0 }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <User size={18} style={{ color: 'hsl(var(--color-accent))' }} />
+            <span>Profil Pengguna (Lokal)</span>
+          </h2>
+          <p style={{ fontSize: '12.5px', color: 'hsl(var(--text-secondary))', lineHeight: 1.5 }}>
+            Atur nama panggilan Anda yang akan ditampilkan di menu navigasi utama dan laporan cetak keuangan Anda.
+          </p>
+          <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Nama Panggilan / User</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Masukkan nama panggilan Anda..."
+                value={localName}
+                onChange={(e) => setLocalNameState(e.target.value)}
+                required
+              />
+            </div>
+            <button type="submit" className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start' }}>
+              Simpan Profil
+            </button>
+          </form>
+        </div>
+
         {/* DATABASE SETTINGS */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '20px', margin: 0 }}>
           <h2 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>

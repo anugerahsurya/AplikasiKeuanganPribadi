@@ -4,6 +4,8 @@ import Sidebar from './components/Sidebar';
 import MobileNav from './components/MobileNav';
 import Toast from './components/Toast';
 import Topbar from './components/Topbar';
+import Modal from './components/Modal';
+import { isLoggedIn } from './services/googleSheets';
 
 // Pages
 import Overview from './pages/Overview';
@@ -26,6 +28,10 @@ export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('ituang_theme') || 'light');
   const [colorTheme, setColorTheme] = useState(() => localStorage.getItem('ituang_color_preset') || 'blue');
 
+  // Welcome modal states
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [welcomeName, setWelcomeName] = useState('');
+
   // Initialize DB and apply settings on startup
   useEffect(() => {
     const init = async () => {
@@ -40,6 +46,13 @@ export default function App() {
       try {
         await initializeDb();
         setDbInitialized(true);
+
+        // Check if user has initialized their local name
+        const localName = localStorage.getItem('ituang_user_name');
+        const googleLoggedIn = isLoggedIn();
+        if (!localName && !googleLoggedIn) {
+          setShowWelcomeModal(true);
+        }
       } catch (e) {
         console.error('Failed to initialize database:', e);
         showToast('Gagal memuat database.', 'error');
@@ -48,6 +61,23 @@ export default function App() {
     };
     init();
   }, []);
+
+  const handleWelcomeSubmit = (e) => {
+    e.preventDefault();
+    const name = welcomeName.trim();
+    if (!name) {
+      showToast('Nama panggilan harus diisi.', 'error');
+      return;
+    }
+    localStorage.setItem('ituang_user_name', name);
+    setShowWelcomeModal(false);
+    showToast(`Selamat datang di Ituang, ${name}! 👋`);
+    triggerRefresh();
+  };
+
+  const handleWelcomeClose = () => {
+    showToast('Silakan masukkan nama Anda untuk memulai.', 'error');
+  };
 
   const triggerRefresh = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -215,6 +245,41 @@ export default function App() {
         currentPage={currentPage} 
         setCurrentPage={setCurrentPage} 
       />
+
+      {/* Welcome Modal for First-time Users */}
+      <Modal
+        isOpen={showWelcomeModal}
+        title="Selamat Datang di Ituang! 💰"
+        onClose={handleWelcomeClose}
+        width="440px"
+      >
+        <form onSubmit={handleWelcomeSubmit}>
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <div style={{ fontSize: '48px', marginBottom: '8px' }}>👋</div>
+            <p style={{ fontSize: '13.5px', color: 'hsl(var(--text-secondary))', lineHeight: 1.5 }}>
+              Halo! Terima kasih telah menggunakan <strong>Ituang</strong>. 
+              Silakan masukkan nama panggilan Anda untuk personalisasi tampilan aplikasi:
+            </p>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Nama Anda</label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="cth: Anugerah, Budi, Maria"
+              value={welcomeName}
+              onChange={(e) => setWelcomeName(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+          <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'stretch' }}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+              Mulai Gunakan Ituang
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
