@@ -8,7 +8,11 @@ import {
   Save,
   Cloud,
   Upload,
-  User
+  User,
+  Smartphone,
+  Copy,
+  Check,
+  ExternalLink
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import { 
@@ -56,6 +60,29 @@ export default function Settings({ onToast, triggerRefresh }) {
   };
   const closeConfirm = () => setConfirmModal(prev => ({ ...prev, open: false, onConfirm: null }));
   
+  // Mobile access link state
+  const [mobileLink, setMobileLink] = useState(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const generateMobileLink = () => {
+    const clientId = getClientId();
+    if (!clientId) return;
+    const baseUrl = window.location.origin + window.location.pathname;
+    const link = `${baseUrl}?clientId=${encodeURIComponent(clientId)}`;
+    setMobileLink(link);
+    const qr = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}`;
+    setQrCodeUrl(qr);
+  };
+
+  const handleCopyLink = () => {
+    if (!mobileLink) return;
+    navigator.clipboard.writeText(mobileLink).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    });
+  };
+
   // User Profile Name State
   const [localName, setLocalNameState] = useState(() => localStorage.getItem('ituang_user_name') || '');
 
@@ -619,6 +646,95 @@ export default function Settings({ onToast, triggerRefresh }) {
           </div>
         )}
       </div>
+
+      {/* MOBILE ACCESS CARD */}
+      {googleClientId && (
+        <div className="card" style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Smartphone size={18} style={{ color: 'hsl(var(--color-accent))' }} />
+            <span>Akses di HP / Perangkat Lain</span>
+          </h2>
+          <p style={{ fontSize: '12.5px', color: 'hsl(var(--text-secondary))', lineHeight: 1.5 }}>
+            Generate link khusus yang sudah menyertakan Client ID secara otomatis. Buka link tersebut di HP Anda, lalu langsung login dengan akun Google yang sama — data akan langsung tersinkronisasi dari spreadsheet.
+          </p>
+
+          {!mobileLink ? (
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={generateMobileLink}
+              style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Smartphone size={14} />
+              Generate Link Akses HP
+            </button>
+          ) : (
+            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+              {/* QR Code */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                <img
+                  src={qrCodeUrl}
+                  alt="QR Code Akses HP"
+                  style={{ width: '150px', height: '150px', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}
+                />
+                <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>Scan QR dari HP</span>
+              </div>
+
+              {/* Link & Actions */}
+              <div style={{ flex: 1, minWidth: '220px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Link Akses Langsung</label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+                    <input
+                      readOnly
+                      value={mobileLink}
+                      className="form-control"
+                      style={{ fontSize: '11px', flex: 1, padding: '8px 12px', wordBreak: 'break-all' }}
+                    />
+                    <button
+                      className={`btn btn-sm ${linkCopied ? 'btn-success' : 'btn-secondary'}`}
+                      onClick={handleCopyLink}
+                      style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px' }}
+                      title="Salin link"
+                    >
+                      {linkCopied ? <Check size={14} /> : <Copy size={14} />}
+                      {linkCopied ? 'Tersalin!' : 'Salin'}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '12px', color: 'hsl(var(--text-secondary))', lineHeight: '1.5', backgroundColor: 'hsl(var(--bg-input))', padding: '10px 12px', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}>
+                  <strong style={{ display: 'block', marginBottom: '4px' }}>Cara pakai di HP:</strong>
+                  1. Scan QR code atau salin link di atas<br />
+                  2. Buka link di browser HP Anda<br />
+                  3. Pergi ke Pengaturan → klik <strong>Hubungkan dengan Google</strong><br />
+                  4. Login dengan akun Google yang sama<br />
+                  5. Data tersinkronisasi otomatis 🎉
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <a
+                    href={mobileLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-ghost btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none', fontSize: '11.5px' }}
+                  >
+                    <ExternalLink size={13} />
+                    Buka di Tab Baru
+                  </a>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => { setMobileLink(null); setQrCodeUrl(null); }}
+                    style={{ fontSize: '11.5px' }}
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* POP-UP PETUNJUK KONFIGURASI ONLINE */}
       <Modal

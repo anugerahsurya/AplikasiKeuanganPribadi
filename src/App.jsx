@@ -5,7 +5,7 @@ import MobileNav from './components/MobileNav';
 import Toast from './components/Toast';
 import Topbar from './components/Topbar';
 import Modal from './components/Modal';
-import { isLoggedIn } from './services/googleSheets';
+import { isLoggedIn, setClientId } from './services/googleSheets';
 
 // Pages
 import Overview from './pages/Overview';
@@ -35,6 +35,16 @@ export default function App() {
   // Initialize DB and apply settings on startup
   useEffect(() => {
     const init = async () => {
+      // Auto-import clientId from URL param (untuk akses mudah dari HP)
+      const urlParams = new URLSearchParams(window.location.search);
+      const clientIdFromUrl = urlParams.get('clientId');
+      if (clientIdFromUrl) {
+        setClientId(decodeURIComponent(clientIdFromUrl));
+        // Hapus param dari URL tanpa reload halaman
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, '', cleanUrl);
+      }
+
       // Set Theme Attributes
       document.documentElement.setAttribute('data-theme', theme);
       
