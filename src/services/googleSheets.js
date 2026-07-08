@@ -60,6 +60,11 @@ export function signOut() {
   localStorage.removeItem(STORAGE_KEYS.USER_INFO);
 }
 
+export function getSpreadsheetUrl() {
+  const sheetId = localStorage.getItem(STORAGE_KEYS.SHEET_ID);
+  return sheetId ? `https://docs.google.com/spreadsheets/d/${sheetId}` : null;
+}
+
 /**
  * Triggers Google OAuth 2.0 Flow to get an access token
  */

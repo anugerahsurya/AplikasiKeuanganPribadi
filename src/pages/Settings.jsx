@@ -29,7 +29,8 @@ import {
   isLoggedIn, 
   getGoogleUser, 
   signIn, 
-  signOut 
+  signOut,
+  getSpreadsheetUrl
 } from '../services/googleSheets';
 
 export default function Settings({ onToast, triggerRefresh }) {
@@ -40,6 +41,20 @@ export default function Settings({ onToast, triggerRefresh }) {
   const [showInstructions, setShowInstructions] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
+
+  // Confirm modal state
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    title: '',
+    message: '',
+    variant: 'primary', // primary | danger | success
+    onConfirm: null
+  });
+
+  const openConfirm = ({ title, message, variant = 'primary', onConfirm }) => {
+    setConfirmModal({ open: true, title, message, variant, onConfirm });
+  };
+  const closeConfirm = () => setConfirmModal(prev => ({ ...prev, open: false, onConfirm: null }));
   
   // User Profile Name State
   const [localName, setLocalNameState] = useState(() => localStorage.getItem('ituang_user_name') || '');
@@ -307,13 +322,29 @@ export default function Settings({ onToast, triggerRefresh }) {
                       {gUser.name?.substring(0,2).toUpperCase()}
                     </div>
                   )}
-                  <div>
+                  <div style={{ flex: 1, overflow: 'hidden' }}>
                     <div style={{ fontWeight: 600, fontSize: '14px' }}>{gUser.name}</div>
                     <div style={{ fontSize: '11px', color: 'hsl(var(--text-secondary))' }}>{gUser.email}</div>
+                    <div style={{ fontSize: '11px', color: 'hsl(var(--color-success))', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'hsl(var(--color-success))', display: 'inline-block' }} />
+                      Terhubung ke Google Sheets
+                    </div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {getSpreadsheetUrl() && (
+                    <a
+                      href={getSpreadsheetUrl()}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-primary btn-sm"
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+                    >
+                      <Cloud size={12} />
+                      <span>Buka Google Sheets</span>
+                    </a>
+                  )}
                   <button 
                     className="btn btn-success btn-sm" 
                     onClick={handleSyncToSheets} 
@@ -338,7 +369,7 @@ export default function Settings({ onToast, triggerRefresh }) {
                     style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
                     <LogOut size={12} />
-                    <span>Disconnet</span>
+                    <span>Putuskan</span>
                   </button>
                 </div>
               </div>
@@ -452,22 +483,25 @@ export default function Settings({ onToast, triggerRefresh }) {
                 </div>
                 <button 
                   className="btn btn-success btn-sm" 
-                  onClick={async () => {
-                    if (!window.confirm("Apakah Anda yakin ingin menggabungkan data lokal dengan Google Sheets? Proses ini akan mencocokkan data secara cerdas untuk menghindari duplikasi.")) {
-                      return;
+                  onClick={() => openConfirm({
+                    title: 'Konfirmasi: Gabungkan Data',
+                    message: 'Proses ini akan mencocokkan data lokal dengan Google Sheets secara cerdas untuk menghindari duplikasi. Data lokal dan cloud akan digabungkan menjadi satu. Lanjutkan?',
+                    variant: 'success',
+                    onConfirm: async () => {
+                      closeConfirm();
+                      setSyncing(true);
+                      try {
+                        await mergeDbWithCloud();
+                        onToast('Migrasi berhasil! Data lokal dan cloud Anda telah digabungkan. 🎉');
+                        triggerRefresh();
+                      } catch (e) {
+                        console.error(e);
+                        onToast('Gagal melakukan penggabungan data: ' + e.message, 'error');
+                      } finally {
+                        setSyncing(false);
+                      }
                     }
-                    setSyncing(true);
-                    try {
-                      await mergeDbWithCloud();
-                      onToast("Migrasi berhasil! Data lokal dan cloud Anda telah digabungkan. 🎉");
-                      triggerRefresh();
-                    } catch (e) {
-                      console.error(e);
-                      onToast("Gagal melakukan penggabungan data: " + e.message, "error");
-                    } finally {
-                      setSyncing(false);
-                    }
-                  }}
+                  })}
                   disabled={syncing}
                   style={{ flexShrink: 0 }}
                 >
@@ -493,21 +527,24 @@ export default function Settings({ onToast, triggerRefresh }) {
                 </div>
                 <button 
                   className="btn btn-secondary btn-sm" 
-                  onClick={async () => {
-                    if (!window.confirm("PERINGATAN: Opsi ini akan menghapus dan menimpa seluruh data keuangan di Google Sheets Anda dengan data lokal saat ini. Lanjutkan?")) {
-                      return;
+                  onClick={() => openConfirm({
+                    title: '⚠️ Ekspor Lokal ke Cloud',
+                    message: 'PERINGATAN: Opsi ini akan menghapus dan menimpa seluruh data keuangan di Google Sheets Anda dengan data lokal saat ini. Data cloud yang ada sebelumnya akan hilang permanen. Lanjutkan?',
+                    variant: 'danger',
+                    onConfirm: async () => {
+                      closeConfirm();
+                      setSyncing(true);
+                      try {
+                        await syncToSheets();
+                        onToast('Migrasi berhasil! Data lokal Anda telah diunggah ke Google Sheets. ☁️');
+                      } catch (e) {
+                        console.error(e);
+                        onToast('Gagal mengunggah data: ' + e.message, 'error');
+                      } finally {
+                        setSyncing(false);
+                      }
                     }
-                    setSyncing(true);
-                    try {
-                      await syncToSheets();
-                      onToast("Migrasi berhasil! Data lokal Anda telah diunggah ke Google Sheets. ☁️");
-                    } catch (e) {
-                      console.error(e);
-                      onToast("Gagal mengunggah data: " + e.message, "error");
-                    } finally {
-                      setSyncing(false);
-                    }
-                  }}
+                  })}
                   disabled={syncing}
                   style={{ flexShrink: 0 }}
                 >
@@ -533,26 +570,29 @@ export default function Settings({ onToast, triggerRefresh }) {
                 </div>
                 <button 
                   className="btn btn-danger btn-sm" 
-                  onClick={async () => {
-                    if (!window.confirm("PERINGATAN SANGAT PENTING: Opsi ini akan menghapus seluruh data lokal saat ini dan menggantinya dengan data dari Google Sheets. Lanjutkan?")) {
-                      return;
-                    }
-                    setSyncing(true);
-                    try {
-                      const success = await syncFromSheets();
-                      if (success) {
-                        onToast("Migrasi berhasil! Data lokal digantikan dengan data dari Google Sheets. 📥");
-                        triggerRefresh();
-                      } else {
-                        onToast("Koneksi gagal atau database sheet kosong.", "error");
+                  onClick={() => openConfirm({
+                    title: '⛔ Impor Cloud ke Lokal',
+                    message: 'PERINGATAN SANGAT PENTING: Opsi ini akan menghapus seluruh data lokal saat ini dan menggantinya dengan data dari Google Sheets. Data lokal yang ada sebelumnya akan hilang permanen. Lanjutkan?',
+                    variant: 'danger',
+                    onConfirm: async () => {
+                      closeConfirm();
+                      setSyncing(true);
+                      try {
+                        const success = await syncFromSheets();
+                        if (success) {
+                          onToast('Migrasi berhasil! Data lokal digantikan dengan data dari Google Sheets. 📥');
+                          triggerRefresh();
+                        } else {
+                          onToast('Koneksi gagal atau database sheet kosong.', 'error');
+                        }
+                      } catch (e) {
+                        console.error(e);
+                        onToast('Gagal mengunduh data: ' + e.message, 'error');
+                      } finally {
+                        setSyncing(false);
                       }
-                    } catch (e) {
-                      console.error(e);
-                      onToast("Gagal mengunduh data: " + e.message, "error");
-                    } finally {
-                      setSyncing(false);
                     }
-                  }}
+                  })}
                   disabled={syncing}
                   style={{ flexShrink: 0 }}
                 >
@@ -625,6 +665,34 @@ export default function Settings({ onToast, triggerRefresh }) {
               onClick={() => setShowSetupModal(false)}
             >
               Tutup
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL KONFIRMASI AKSI MIGRASI (Ganti window.confirm) */}
+      <Modal
+        isOpen={confirmModal.open}
+        title={confirmModal.title}
+        onClose={closeConfirm}
+        width="480px"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <p style={{ fontSize: '13.5px', color: 'hsl(var(--text-secondary))', lineHeight: '1.6' }}>
+            {confirmModal.message}
+          </p>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <button 
+              className="btn btn-secondary btn-sm" 
+              onClick={closeConfirm}
+            >
+              Batal
+            </button>
+            <button 
+              className={`btn btn-${confirmModal.variant === 'success' ? 'success' : 'danger'} btn-sm`}
+              onClick={() => confirmModal.onConfirm && confirmModal.onConfirm()}
+            >
+              Ya, Lanjutkan
             </button>
           </div>
         </div>
