@@ -305,29 +305,6 @@ button, input, select, textarea {
 /* --------------------------------------------------------------------------
    MOBILE NAV & HEADER
    -------------------------------------------------------------------------- */
-.mobile-header {
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background-color: hsl(var(--bg-card));
-  border-bottom: 1px solid hsl(var(--border));
-  position: sticky;
-  top: 0;
-  z-index: 99;
-}
-.mobile-header-logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.mobile-header-text {
-  font-size: 18px;
-  font-weight: 700;
-  background: var(--color-accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
 .mobile-nav {
   display: none;
   position: fixed;
@@ -1161,9 +1138,6 @@ select.form-control {
   }
   .sidebar {
     display: none;
-  }
-  .mobile-header {
-    display: flex;
   }
   .mobile-nav {
     display: grid;

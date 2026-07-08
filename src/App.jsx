@@ -217,13 +217,7 @@ export default function App() {
         onToast={showToast} 
       />
 
-      {/* Mobile Sticky Header */}
-      <header className="mobile-header">
-        <div className="mobile-header-logo">
-          <span style={{ fontSize: '20px' }}>💰</span>
-          <span className="mobile-header-text">Ituang</span>
-        </div>
-      </header>
+
 
       {/* Main Dynamic View Content */}
       <main className="main-content">

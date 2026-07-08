@@ -15,7 +15,12 @@ import {
   setDbMode, 
   syncFromSheets, 
   syncToSheets,
-  importDatabase
+  importDatabase,
+  mergeDbWithCloud,
+  getAccounts,
+  getSavings,
+  getAllTransactions,
+  getMemos
 } from '../services/db';
 import { 
   getClientId, 
@@ -374,6 +379,180 @@ export default function Settings({ onToast, triggerRefresh }) {
         )}
       </div>
 
+      {/* DATA MIGRATION SECTION */}
+      {isGUserLoggedIn && (
+        <div className="card" style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Cloud size={18} style={{ color: 'hsl(var(--color-accent))' }} />
+            <span>Migrasi Data (Lokal ➔ Cloud Spreadsheet)</span>
+          </h2>
+          <p style={{ fontSize: '12.5px', color: 'hsl(var(--text-secondary))', lineHeight: 1.5 }}>
+            Anda terhubung dengan Google Sheets. Gunakan fitur migrasi di bawah ini untuk memindahkan atau menyelaraskan data agar tidak ada data yang hilang saat beralih mode database.
+          </p>
+
+          {/* Local Data Stats Summary */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(4, 1fr)', 
+            gap: '12px', 
+            backgroundColor: 'hsl(var(--bg-input))', 
+            padding: '12px 16px', 
+            borderRadius: '8px', 
+            border: '1px solid hsl(var(--border))',
+            fontSize: '12px'
+          }}>
+            <div>
+              <span style={{ color: 'hsl(var(--text-muted))', display: 'block' }}>Tempat Saldo</span>
+              <strong style={{ fontSize: '14px' }}>{getAccounts().length}</strong>
+            </div>
+            <div>
+              <span style={{ color: 'hsl(var(--text-muted))', display: 'block' }}>Tabungan</span>
+              <strong style={{ fontSize: '14px' }}>{getSavings().length}</strong>
+            </div>
+            <div>
+              <span style={{ color: 'hsl(var(--text-muted))', display: 'block' }}>Transaksi</span>
+              <strong style={{ fontSize: '14px' }}>{getAllTransactions().length}</strong>
+            </div>
+            <div>
+              <span style={{ color: 'hsl(var(--text-muted))', display: 'block' }}>Catatan/Memo</span>
+              <strong style={{ fontSize: '14px' }}>{getMemos().length}</strong>
+            </div>
+          </div>
+
+          {/* Migration Options */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '8px' }}>
+            {/* Option A: Merge */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              padding: '16px', 
+              borderRadius: '10px', 
+              border: '1px solid hsl(var(--color-success) / 0.3)',
+              backgroundColor: 'hsl(var(--color-success) / 0.03)',
+              gap: '16px'
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontWeight: 600, fontSize: '13.5px', color: 'hsl(var(--color-success))', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>Pilihan 1: Gabungkan Data (Merge)</span>
+                  <span style={{ fontSize: '10px', backgroundColor: 'hsl(var(--color-success) / 0.15)', padding: '2px 6px', borderRadius: '4px' }}>Sangat Direkomendasikan</span>
+                </span>
+                <span style={{ fontSize: '12px', color: 'hsl(var(--text-secondary))', lineHeight: '1.4' }}>
+                  Gabungkan data offline lokal saat ini dengan data di Google Sheets secara cerdas. Menghindari duplikasi transaksi dan mempertahankan semua relasi saldo.
+                </span>
+              </div>
+              <button 
+                className="btn btn-success btn-sm" 
+                onClick={async () => {
+                  if (!window.confirm("Apakah Anda yakin ingin menggabungkan data lokal dengan Google Sheets? Proses ini akan mencocokkan data secara cerdas untuk menghindari duplikasi.")) {
+                    return;
+                  }
+                  setSyncing(true);
+                  try {
+                    await mergeDbWithCloud();
+                    onToast("Migrasi berhasil! Data lokal dan cloud Anda telah digabungkan. 🎉");
+                    triggerRefresh();
+                  } catch (e) {
+                    console.error(e);
+                    onToast("Gagal melakukan penggabungan data: " + e.message, "error");
+                  } finally {
+                    setSyncing(false);
+                  }
+                }}
+                disabled={syncing}
+                style={{ flexShrink: 0 }}
+              >
+                Mulai Gabungkan
+              </button>
+            </div>
+
+            {/* Option B: Upload Overwrite */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              padding: '16px', 
+              borderRadius: '10px', 
+              border: '1px solid hsl(var(--border))',
+              gap: '16px'
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontWeight: 600, fontSize: '13.5px' }}>Pilihan 2: Ekspor Lokal ke Cloud (Overwrite Cloud)</span>
+                <span style={{ fontSize: '12px', color: 'hsl(var(--text-secondary))', lineHeight: '1.4' }}>
+                  Unggah data lokal Anda ke Google Sheets dan hapus data lama yang ada di cloud. Gunakan ini jika Google Sheets masih kosong atau tidak relevan.
+                </span>
+              </div>
+              <button 
+                className="btn btn-secondary btn-sm" 
+                onClick={async () => {
+                  if (!window.confirm("PERINGATAN: Opsi ini akan menghapus dan menimpa seluruh data keuangan di Google Sheets Anda dengan data lokal saat ini. Lanjutkan?")) {
+                    return;
+                  }
+                  setSyncing(true);
+                  try {
+                    await syncToSheets();
+                    onToast("Migrasi berhasil! Data lokal Anda telah diunggah ke Google Sheets. ☁️");
+                  } catch (e) {
+                    console.error(e);
+                    onToast("Gagal mengunggah data: " + e.message, "error");
+                  } finally {
+                    setSyncing(false);
+                  }
+                }}
+                disabled={syncing}
+                style={{ flexShrink: 0 }}
+              >
+                Ekspor ke Cloud
+              </button>
+            </div>
+
+            {/* Option C: Download Overwrite */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              padding: '16px', 
+              borderRadius: '10px', 
+              border: '1px solid hsl(var(--border))',
+              gap: '16px'
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontWeight: 600, fontSize: '13.5px', color: 'hsl(var(--color-danger))' }}>Pilihan 3: Impor Cloud ke Lokal (Overwrite Lokal)</span>
+                <span style={{ fontSize: '12px', color: 'hsl(var(--text-secondary))', lineHeight: '1.4' }}>
+                  Unduh data dari Google Sheets dan timpa seluruh database lokal saat ini. <strong>Peringatan:</strong> Seluruh data lokal Anda saat ini akan dihapus!
+                </span>
+              </div>
+              <button 
+                className="btn btn-danger btn-sm" 
+                onClick={async () => {
+                  if (!window.confirm("PERINGATAN SANGAT PENTING: Opsi ini akan menghapus seluruh data lokal saat ini dan menggantinya dengan data dari Google Sheets. Lanjutkan?")) {
+                    return;
+                  }
+                  setSyncing(true);
+                  try {
+                    const success = await syncFromSheets();
+                    if (success) {
+                      onToast("Migrasi berhasil! Data lokal digantikan dengan data dari Google Sheets. 📥");
+                      triggerRefresh();
+                    } else {
+                      onToast("Koneksi gagal atau database sheet kosong.", "error");
+                    }
+                  } catch (e) {
+                    console.error(e);
+                    onToast("Gagal mengunduh data: " + e.message, "error");
+                  } finally {
+                    setSyncing(false);
+                  }
+                }}
+                disabled={syncing}
+                style={{ flexShrink: 0 }}
+              >
+                Impor dari Cloud
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

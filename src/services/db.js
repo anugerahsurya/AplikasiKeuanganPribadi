@@ -624,3 +624,253 @@ export async function importDatabase(data) {
   await triggerSheetsSync();
   return true;
 }
+
+export async function mergeDbWithCloud() {
+  if (googleSheets.isLoggedIn()) {
+    const sheetsData = await googleSheets.syncAllFromGoogleSheets();
+    if (sheetsData) {
+      await mergeLocalAndCloud(sheetsData);
+      return true;
+    }
+  }
+  throw new Error('Google Authentication required.');
+}
+
+async function mergeLocalAndCloud(sheetsData) {
+  if (!sheetsData) return false;
+
+  // 1. Merge Accounts
+  const mergedAccounts = [];
+  const localAccountMap = {}; // oldLocalId -> newId
+  const sheetsAccountMap = {}; // oldSheetsId -> newId
+
+  // Helper to find account by name
+  const findAccountByName = (list, name) => {
+    return list.find(a => a.name.trim().toLowerCase() === name.trim().toLowerCase());
+  };
+
+  // Start with local accounts
+  dbState.accounts.forEach(localAcc => {
+    const existing = findAccountByName(mergedAccounts, localAcc.name);
+    if (existing) {
+      localAccountMap[localAcc.id] = existing.id;
+      if (existing.balance === 0 && localAcc.balance !== 0) {
+        existing.balance = localAcc.balance;
+      }
+    } else {
+      const newId = mergedAccounts.length + 1;
+      const newAcc = {
+        id: newId,
+        name: localAcc.name.trim(),
+        category: localAcc.category,
+        balance: localAcc.balance,
+        created_at: localAcc.created_at || new Date().toISOString()
+      };
+      mergedAccounts.push(newAcc);
+      localAccountMap[localAcc.id] = newId;
+    }
+  });
+
+  // Merge sheets accounts
+  sheetsData.accounts.forEach(sheetsAcc => {
+    const existing = findAccountByName(mergedAccounts, sheetsAcc.name);
+    if (existing) {
+      sheetsAccountMap[sheetsAcc.id] = existing.id;
+      if (existing.balance === 0 && sheetsAcc.balance !== 0) {
+        existing.balance = sheetsAcc.balance;
+      }
+    } else {
+      const newId = mergedAccounts.length + 1;
+      const newAcc = {
+        id: newId,
+        name: sheetsAcc.name.trim(),
+        category: sheetsAcc.category,
+        balance: sheetsAcc.balance,
+        created_at: sheetsAcc.created_at || new Date().toISOString()
+      };
+      mergedAccounts.push(newAcc);
+      sheetsAccountMap[sheetsAcc.id] = newId;
+    }
+  });
+
+  // 2. Merge Savings
+  const mergedSavings = [];
+  const localSavingMap = {}; // oldLocalId -> newId
+  const sheetsSavingMap = {}; // oldSheetsId -> newId
+
+  const findSavingByName = (list, name) => {
+    return list.find(s => s.name.trim().toLowerCase() === name.trim().toLowerCase());
+  };
+
+  dbState.savings.forEach(localSav => {
+    const existing = findSavingByName(mergedSavings, localSav.name);
+    if (existing) {
+      localSavingMap[localSav.id] = existing.id;
+      if (existing.balance === 0 && localSav.balance !== 0) {
+        existing.balance = localSav.balance;
+      }
+    } else {
+      const newId = mergedSavings.length + 1;
+      const newSav = {
+        id: newId,
+        name: localSav.name.trim(),
+        balance: localSav.balance,
+        created_at: localSav.created_at || new Date().toISOString()
+      };
+      mergedSavings.push(newSav);
+      localSavingMap[localSav.id] = newId;
+    }
+  });
+
+  sheetsData.savings.forEach(sheetsSav => {
+    const existing = findSavingByName(mergedSavings, sheetsSav.name);
+    if (existing) {
+      sheetsSavingMap[sheetsSav.id] = existing.id;
+      if (existing.balance === 0 && sheetsSav.balance !== 0) {
+        existing.balance = sheetsSav.balance;
+      }
+    } else {
+      const newId = mergedSavings.length + 1;
+      const newSav = {
+        id: newId,
+        name: sheetsSav.name.trim(),
+        balance: sheetsSav.balance,
+        created_at: sheetsSav.created_at || new Date().toISOString()
+      };
+      mergedSavings.push(newSav);
+      sheetsSavingMap[sheetsSav.id] = newId;
+    }
+  });
+
+  // 3. Merge Budgets
+  const mergedBudgets = [];
+  const findBudgetByCategory = (list, category) => {
+    return list.find(b => b.category.trim().toLowerCase() === category.trim().toLowerCase());
+  };
+
+  dbState.budgets.forEach(localB => {
+    const existing = findBudgetByCategory(mergedBudgets, localB.category);
+    if (!existing) {
+      mergedBudgets.push({
+        id: mergedBudgets.length + 1,
+        category: localB.category.trim(),
+        amount: localB.amount,
+        is_default: localB.is_default,
+        created_at: localB.created_at || new Date().toISOString()
+      });
+    }
+  });
+
+  sheetsData.budgets.forEach(sheetsB => {
+    const existing = findBudgetByCategory(mergedBudgets, sheetsB.category);
+    if (existing) {
+      if (existing.amount === 0 && sheetsB.amount !== 0) {
+        existing.amount = sheetsB.amount;
+      }
+    } else {
+      mergedBudgets.push({
+        id: mergedBudgets.length + 1,
+        category: sheetsB.category.trim(),
+        amount: sheetsB.amount,
+        is_default: sheetsB.is_default,
+        created_at: sheetsB.created_at || new Date().toISOString()
+      });
+    }
+  });
+
+  // 4. Merge Memos
+  const mergedMemos = [];
+  const findMemoByTitleAndContent = (list, title, content) => {
+    return list.find(m => 
+      m.title.trim().toLowerCase() === title.trim().toLowerCase() && 
+      m.content.trim().toLowerCase() === content.trim().toLowerCase()
+    );
+  };
+
+  dbState.memos.forEach(localM => {
+    const existing = findMemoByTitleAndContent(mergedMemos, localM.title, localM.content);
+    if (!existing) {
+      mergedMemos.push({
+        id: mergedMemos.length + 1,
+        title: localM.title.trim(),
+        content: localM.content.trim(),
+        color: localM.color,
+        date: localM.date
+      });
+    }
+  });
+
+  sheetsData.memos.forEach(sheetsM => {
+    const existing = findMemoByTitleAndContent(mergedMemos, sheetsM.title, sheetsM.content);
+    if (!existing) {
+      mergedMemos.push({
+        id: mergedMemos.length + 1,
+        title: sheetsM.title.trim(),
+        content: sheetsM.content.trim(),
+        color: sheetsM.color,
+        date: sheetsM.date
+      });
+    }
+  });
+
+  // 5. Merge & Deduplicate Transactions
+  const mergedTransactions = [];
+  const transactionKeys = new Set();
+
+  const getTxKey = (t) => {
+    const time = t.created_at ? new Date(t.created_at).toISOString().slice(0, 16) : '';
+    return `${t.type}_${t.amount}_${(t.category || '').trim().toLowerCase()}_${(t.item_name || '').trim().toLowerCase()}_${time}`;
+  };
+
+  const processTx = (tx, accountMap, savingMap) => {
+    const key = getTxKey(tx);
+    if (transactionKeys.has(key)) return;
+
+    transactionKeys.add(key);
+    const newTxId = mergedTransactions.length + 1;
+
+    // Remap account/saving IDs
+    const newAccountFrom = tx.account_from_id ? accountMap[tx.account_from_id] || null : null;
+    const newAccountTo = tx.account_to_id ? accountMap[tx.account_to_id] || null : null;
+    const newSavingFrom = tx.savings_from_id ? savingMap[tx.savings_from_id] || null : null;
+    const newSavingTo = tx.savings_to_id ? savingMap[tx.savings_to_id] || null : null;
+
+    mergedTransactions.push({
+      id: newTxId,
+      item_name: tx.item_name,
+      amount: Number(tx.amount) || 0,
+      type: tx.type,
+      category: tx.category,
+      account_from_id: newAccountFrom,
+      account_to_id: newAccountTo,
+      savings_from_id: newSavingFrom,
+      savings_to_id: newSavingTo,
+      notes: tx.notes || null,
+      created_at: tx.created_at,
+      exclude_from_quota: tx.exclude_from_quota ? 1 : 0
+    });
+  };
+
+  // Add local transactions
+  dbState.transactions.forEach(tx => {
+    processTx(tx, localAccountMap, localSavingMap);
+  });
+
+  // Add sheets transactions
+  sheetsData.transactions.forEach(tx => {
+    processTx(tx, sheetsAccountMap, sheetsSavingMap);
+  });
+
+  // Update state and save
+  dbState = {
+    accounts: mergedAccounts,
+    savings: mergedSavings,
+    transactions: mergedTransactions,
+    budgets: mergedBudgets,
+    memos: mergedMemos
+  };
+
+  saveLocal();
+  await triggerSheetsSync();
+  return true;
+}
