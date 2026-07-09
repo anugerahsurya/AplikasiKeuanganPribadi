@@ -105,7 +105,7 @@ export async function signIn() {
     try {
       const tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: clientId,
-        scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
+        scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file openid email profile',
         callback: async (tokenResponse) => {
           if (tokenResponse.error) {
             reject(tokenResponse);
