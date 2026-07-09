@@ -1180,6 +1180,10 @@ select.form-control {
   to { transform: rotate(360deg); }
 }
 
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
 /* --------------------------------------------------------------------------
    PREMIUM LOADER ANIMATIONS
    -------------------------------------------------------------------------- */

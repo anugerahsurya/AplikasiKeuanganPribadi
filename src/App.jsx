@@ -255,6 +255,7 @@ export default function App() {
           colorTheme={colorTheme}
           setColorTheme={setColorTheme}
           onToast={showToast}
+          triggerRefresh={triggerRefresh}
         />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', flex: 1 }}>
           {renderPage()}
