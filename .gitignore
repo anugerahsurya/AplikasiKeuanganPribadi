@@ -14,8 +14,7 @@ dist-ssr
 
 # Environment variables (jangan di-commit!)
 .env
-.env.local
-.env.*.local
+.env.*
 
 # Editor directories and files
 .vscode/*
