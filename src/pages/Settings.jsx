@@ -12,7 +12,13 @@ import {
   Smartphone,
   Copy,
   Check,
-  ExternalLink
+  ExternalLink,
+  ShieldCheck,
+  LogIn,
+  UserPlus,
+  Eye,
+  EyeOff,
+  Loader
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import { 
@@ -37,7 +43,9 @@ import {
   getSpreadsheetUrl
 } from '../services/googleSheets';
 
-export default function Settings({ onToast, triggerRefresh }) {
+import { loginUser, registerUser } from '../services/auth';
+
+export default function Settings({ onToast, triggerRefresh, onLogout, authUser }) {
   const [dbMode, setLocalDbMode] = useState(getDbMode());
   const [googleClientId, setGoogleClientId] = useState(getClientId());
   const [isGUserLoggedIn, setIsGUserLoggedIn] = useState(isLoggedIn());
@@ -46,6 +54,13 @@ export default function Settings({ onToast, triggerRefresh }) {
   const [showInstructions, setShowInstructions] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
+
+  // Ituang account login form state
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
+  const [authForm, setAuthForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [showAuthPass, setShowAuthPass] = useState(false);
 
   // Confirm modal state
   const [confirmModal, setConfirmModal] = useState({
@@ -216,8 +231,232 @@ export default function Settings({ onToast, triggerRefresh }) {
     }
   };
 
+  // ── Ituang Account Auth Handlers ─────────────────────────────────────
+  const handleAuthFormChange = (e) => {
+    setAuthForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setAuthError('');
+  };
+
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    if (authMode === 'register' && authForm.password !== authForm.confirmPassword) {
+      setAuthError('Konfirmasi password tidak cocok.');
+      return;
+    }
+    setAuthLoading(true);
+    try {
+      let result;
+      if (authMode === 'login') {
+        result = await loginUser({ username: authForm.username, password: authForm.password });
+      } else {
+        result = await registerUser({ username: authForm.username, email: authForm.email, password: authForm.password });
+      }
+      if (result.success) {
+        if (!localStorage.getItem('ituang_user_name')) {
+          localStorage.setItem('ituang_user_name', result.user.username);
+        }
+        onToast(`Selamat datang, ${result.user.username}! 👋`);
+        // Update parent authUser state via onLogin callback
+        if (onLogout) {
+          // Trigger re-render in parent by calling a special handler
+          // We emit a custom event since we only have onLogout prop available
+          window.dispatchEvent(new CustomEvent('ituang:auth-login', { detail: result.user }));
+        }
+        triggerRefresh();
+      } else {
+        setAuthError(result.error || 'Terjadi kesalahan.');
+      }
+    } catch {
+      setAuthError('Koneksi gagal. Periksa koneksi internet.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const switchAuthMode = (mode) => {
+    setAuthMode(mode);
+    setAuthError('');
+    setAuthForm({ username: '', email: '', password: '', confirmPassword: '' });
+  };
+
   return (
     <div className="page active">
+
+      {/* AKUN ITUANG CARD */}
+      <div className="card" style={{ padding: '24px' }}>
+        <h2 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ShieldCheck size={18} style={{ color: 'hsl(var(--color-accent))' }} />
+          <span>Akun Ituang</span>
+          <span style={{
+            fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px',
+            backgroundColor: 'hsl(var(--color-accent) / 0.1)', color: 'hsl(var(--color-accent))', marginLeft: '4px'
+          }}>Opsional</span>
+        </h2>
+
+        {authUser ? (
+          /* ── Sudah Login ── */
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '14px',
+                background: 'var(--color-accent-gradient)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontWeight: 700, fontSize: '18px',
+                boxShadow: '0 4px 12px hsl(var(--color-accent) / 0.3)'
+              }}>
+                {authUser.username?.substring(0, 1).toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '15px' }}>{authUser.username}</div>
+                <div style={{ fontSize: '12px', color: 'hsl(var(--text-muted))' }}>{authUser.email}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: 'hsl(var(--color-success))', marginTop: '3px' }}>
+                  <ShieldCheck size={11} />
+                  <span>Sesi aktif · Password terenkripsi SHA-256</span>
+                </div>
+              </div>
+            </div>
+            <button
+              className="btn btn-danger btn-sm"
+              onClick={() => openConfirm({
+                title: 'Keluar dari Akun Ituang?',
+                message: 'Anda akan keluar dari akun Ituang. Data lokal di perangkat ini tetap aman. Lanjutkan?',
+                variant: 'danger',
+                onConfirm: () => { closeConfirm(); if (onLogout) onLogout(); }
+              })}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}
+            >
+              <LogOut size={13} />
+              Keluar
+            </button>
+          </div>
+        ) : (
+          /* ── Belum Login ── */
+          <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            {/* Info di kiri */}
+            <div style={{ flex: '1', minWidth: '220px' }}>
+              <p style={{ fontSize: '12.5px', color: 'hsl(var(--text-secondary))', lineHeight: 1.6, marginBottom: '12px' }}>
+                Daftarkan akun untuk menyimpan identitas Anda secara online. Fitur ini <strong>opsional</strong> — tanpa login pun app tetap berjalan normal dengan penyimpanan lokal.
+              </p>
+              <div style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', lineHeight: '1.8' }}>
+                <div>✅ App tetap berfungsi tanpa login</div>
+                <div>✅ Password dienkripsi SHA-256</div>
+                <div>✅ Data keuangan di Google Sheets milik kamu</div>
+              </div>
+            </div>
+
+            {/* Form login/register di kanan */}
+            <div style={{ flex: '1', minWidth: '260px' }}>
+              {/* Mode toggle */}
+              <div style={{
+                display: 'flex', backgroundColor: 'hsl(var(--bg-input))',
+                borderRadius: '8px', padding: '3px', marginBottom: '16px'
+              }}>
+                {['login', 'register'].map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => switchAuthMode(m)}
+                    style={{
+                      flex: 1, padding: '6px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                      fontSize: '12px', fontWeight: 600, transition: 'all 0.2s ease',
+                      background: authMode === m ? 'var(--color-accent-gradient)' : 'none',
+                      color: authMode === m ? '#fff' : 'hsl(var(--text-muted))',
+                      boxShadow: authMode === m ? '0 2px 6px hsl(var(--color-accent) / 0.3)' : 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
+                    }}
+                  >
+                    {m === 'login' ? <LogIn size={12} /> : <UserPlus size={12} />}
+                    {m === 'login' ? 'Masuk' : 'Daftar'}
+                  </button>
+                ))}
+              </div>
+
+              <form onSubmit={handleAuthSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Username</label>
+                  <input
+                    className="form-control"
+                    type="text" name="username"
+                    placeholder={authMode === 'login' ? 'Username kamu...' : 'Buat username (min. 3 karakter)'}
+                    value={authForm.username}
+                    onChange={handleAuthFormChange}
+                    required style={{ fontSize: '13px' }}
+                  />
+                </div>
+
+                {authMode === 'register' && (
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Email</label>
+                    <input
+                      className="form-control"
+                      type="email" name="email"
+                      placeholder="email@contoh.com"
+                      value={authForm.email}
+                      onChange={handleAuthFormChange}
+                      required style={{ fontSize: '13px' }}
+                    />
+                  </div>
+                )}
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Password</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      className="form-control"
+                      type={showAuthPass ? 'text' : 'password'} name="password"
+                      placeholder={authMode === 'login' ? 'Password...' : 'Min. 6 karakter'}
+                      value={authForm.password}
+                      onChange={handleAuthFormChange}
+                      required style={{ fontSize: '13px', paddingRight: '40px' }}
+                    />
+                    <button type="button" tabIndex={-1} onClick={() => setShowAuthPass(v => !v)}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                        background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))', display: 'flex' }}
+                    >
+                      {showAuthPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </div>
+
+                {authMode === 'register' && (
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Konfirmasi Password</label>
+                    <input
+                      className="form-control"
+                      type={showAuthPass ? 'text' : 'password'} name="confirmPassword"
+                      placeholder="Ulangi password..."
+                      value={authForm.confirmPassword}
+                      onChange={handleAuthFormChange}
+                      required style={{ fontSize: '13px' }}
+                    />
+                  </div>
+                )}
+
+                {authError && (
+                  <div style={{
+                    padding: '8px 12px', borderRadius: '8px', fontSize: '12px',
+                    backgroundColor: 'hsl(var(--color-danger) / 0.1)',
+                    border: '1px solid hsl(var(--color-danger) / 0.25)',
+                    color: 'hsl(var(--color-danger))',
+                  }}>
+                    ⚠️ {authError}
+                  </div>
+                )}
+
+                <button type="submit" className="btn btn-primary btn-sm" disabled={authLoading}
+                  style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}
+                >
+                  {authLoading
+                    ? <><Loader size={13} style={{ animation: 'spin 0.8s linear infinite' }} /><span>Memproses...</span></>
+                    : <>{authMode === 'login' ? <LogIn size={13} /> : <UserPlus size={13} />}<span>{authMode === 'login' ? 'Masuk' : 'Buat Akun'}</span></>}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-2" style={{ gap: '24px' }}>
         {/* PROFILE SETTINGS */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '16px', margin: 0 }}>

@@ -6,6 +6,7 @@ import Toast from './components/Toast';
 import Topbar from './components/Topbar';
 import Modal from './components/Modal';
 import { isLoggedIn, setClientId } from './services/googleSheets';
+import { isAuthenticated, getCurrentUser, logoutUser } from './services/auth';
 
 // Pages
 import Overview from './pages/Overview';
@@ -23,6 +24,7 @@ export default function App() {
   const [dbInitialized, setDbInitialized] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [toasts, setToasts] = useState([]);
+  const [authUser, setAuthUser] = useState(() => isAuthenticated() ? getCurrentUser() : null);
   
   // Theme & Preset settings (Default to 'light')
   const [theme, setTheme] = useState(() => localStorage.getItem('ituang_theme') || 'light');
@@ -58,6 +60,11 @@ export default function App() {
         setDbInitialized(true);
 
         // Check if user has initialized their local name
+        // Pre-fill local name from auth session if available
+        const authSession = getCurrentUser();
+        if (authSession && !localStorage.getItem('ituang_user_name')) {
+          localStorage.setItem('ituang_user_name', authSession.username);
+        }
         const localName = localStorage.getItem('ituang_user_name');
         const googleLoggedIn = isLoggedIn();
         if (!localName && !googleLoggedIn) {
@@ -70,7 +77,15 @@ export default function App() {
       }
     };
     init();
+
+    // Listen for login event dispatched from Settings page
+    const onAuthLogin = (e) => {
+      setAuthUser(e.detail);
+    };
+    window.addEventListener('ituang:auth-login', onAuthLogin);
+    return () => window.removeEventListener('ituang:auth-login', onAuthLogin);
   }, []);
+
 
   const handleWelcomeSubmit = (e) => {
     e.preventDefault();
@@ -101,6 +116,25 @@ export default function App() {
   const removeToast = (id) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
+
+  // Handle login from Login page
+  const handleLogin = (user) => {
+    setAuthUser(user);
+    // Pre-fill local name from username
+    if (!localStorage.getItem('ituang_user_name')) {
+      localStorage.setItem('ituang_user_name', user.username);
+    }
+    showToast(`Selamat datang, ${user.username}! 👋`);
+    triggerRefresh();
+  };
+
+  // Handle logout from Settings
+  const handleLogout = () => {
+    logoutUser();
+    setAuthUser(null);
+    showToast('Berhasil keluar dari Ituang.');
+  };
+
 
   if (!dbInitialized) {
     return (
@@ -194,6 +228,8 @@ export default function App() {
           <Settings 
             onToast={showToast} 
             triggerRefresh={triggerRefresh}
+            onLogout={handleLogout}
+            authUser={authUser}
           />
         );
       case 'guide':
