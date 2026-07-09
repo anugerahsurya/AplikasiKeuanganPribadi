@@ -646,7 +646,9 @@ async function mergeLocalAndCloud(sheetsData) {
 
   // Helper to find account by name
   const findAccountByName = (list, name) => {
-    return list.find(a => a.name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (!name) return null;
+    const searchName = name.toString().trim().toLowerCase();
+    return list.find(a => a.name && a.name.toString().trim().toLowerCase() === searchName);
   };
 
   // Start with local accounts
@@ -661,7 +663,7 @@ async function mergeLocalAndCloud(sheetsData) {
       const newId = mergedAccounts.length + 1;
       const newAcc = {
         id: newId,
-        name: localAcc.name.trim(),
+        name: (localAcc.name || '').toString().trim(),
         category: localAcc.category,
         balance: localAcc.balance,
         created_at: localAcc.created_at || new Date().toISOString()
@@ -683,7 +685,7 @@ async function mergeLocalAndCloud(sheetsData) {
       const newId = mergedAccounts.length + 1;
       const newAcc = {
         id: newId,
-        name: sheetsAcc.name.trim(),
+        name: (sheetsAcc.name || '').toString().trim(),
         category: sheetsAcc.category,
         balance: sheetsAcc.balance,
         created_at: sheetsAcc.created_at || new Date().toISOString()
@@ -699,7 +701,9 @@ async function mergeLocalAndCloud(sheetsData) {
   const sheetsSavingMap = {}; // oldSheetsId -> newId
 
   const findSavingByName = (list, name) => {
-    return list.find(s => s.name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (!name) return null;
+    const searchName = name.toString().trim().toLowerCase();
+    return list.find(s => s.name && s.name.toString().trim().toLowerCase() === searchName);
   };
 
   dbState.savings.forEach(localSav => {
@@ -713,7 +717,7 @@ async function mergeLocalAndCloud(sheetsData) {
       const newId = mergedSavings.length + 1;
       const newSav = {
         id: newId,
-        name: localSav.name.trim(),
+        name: (localSav.name || '').toString().trim(),
         balance: localSav.balance,
         created_at: localSav.created_at || new Date().toISOString()
       };
@@ -733,7 +737,7 @@ async function mergeLocalAndCloud(sheetsData) {
       const newId = mergedSavings.length + 1;
       const newSav = {
         id: newId,
-        name: sheetsSav.name.trim(),
+        name: (sheetsSav.name || '').toString().trim(),
         balance: sheetsSav.balance,
         created_at: sheetsSav.created_at || new Date().toISOString()
       };
@@ -745,7 +749,9 @@ async function mergeLocalAndCloud(sheetsData) {
   // 3. Merge Budgets
   const mergedBudgets = [];
   const findBudgetByCategory = (list, category) => {
-    return list.find(b => b.category.trim().toLowerCase() === category.trim().toLowerCase());
+    if (!category) return null;
+    const searchCat = category.toString().trim().toLowerCase();
+    return list.find(b => b.category && b.category.toString().trim().toLowerCase() === searchCat);
   };
 
   dbState.budgets.forEach(localB => {
@@ -753,7 +759,7 @@ async function mergeLocalAndCloud(sheetsData) {
     if (!existing) {
       mergedBudgets.push({
         id: mergedBudgets.length + 1,
-        category: localB.category.trim(),
+        category: (localB.category || '').toString().trim(),
         amount: localB.amount,
         is_default: localB.is_default,
         created_at: localB.created_at || new Date().toISOString()
@@ -770,7 +776,7 @@ async function mergeLocalAndCloud(sheetsData) {
     } else {
       mergedBudgets.push({
         id: mergedBudgets.length + 1,
-        category: sheetsB.category.trim(),
+        category: (sheetsB.category || '').toString().trim(),
         amount: sheetsB.amount,
         is_default: sheetsB.is_default,
         created_at: sheetsB.created_at || new Date().toISOString()
@@ -781,9 +787,11 @@ async function mergeLocalAndCloud(sheetsData) {
   // 4. Merge Memos
   const mergedMemos = [];
   const findMemoByTitleAndContent = (list, title, content) => {
+    const searchTitle = (title || '').toString().trim().toLowerCase();
+    const searchContent = (content || '').toString().trim().toLowerCase();
     return list.find(m => 
-      m.title.trim().toLowerCase() === title.trim().toLowerCase() && 
-      m.content.trim().toLowerCase() === content.trim().toLowerCase()
+      (m.title || '').toString().trim().toLowerCase() === searchTitle && 
+      (m.content || '').toString().trim().toLowerCase() === searchContent
     );
   };
 
@@ -792,8 +800,8 @@ async function mergeLocalAndCloud(sheetsData) {
     if (!existing) {
       mergedMemos.push({
         id: mergedMemos.length + 1,
-        title: localM.title.trim(),
-        content: localM.content.trim(),
+        title: (localM.title || '').toString().trim(),
+        content: (localM.content || '').toString().trim(),
         color: localM.color,
         date: localM.date
       });
@@ -805,8 +813,8 @@ async function mergeLocalAndCloud(sheetsData) {
     if (!existing) {
       mergedMemos.push({
         id: mergedMemos.length + 1,
-        title: sheetsM.title.trim(),
-        content: sheetsM.content.trim(),
+        title: (sheetsM.title || '').toString().trim(),
+        content: (sheetsM.content || '').toString().trim(),
         color: sheetsM.color,
         date: sheetsM.date
       });

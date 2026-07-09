@@ -329,11 +329,13 @@ export async function syncAllFromGoogleSheets() {
     return rows.slice(1).map(row => {
       const obj = {};
       headers.forEach(h => {
-        const idx = sheetHeaders.indexOf(h);
+        const idx = sheetHeaders.findIndex(header => 
+          header && header.toString().trim().toLowerCase() === h.toLowerCase()
+        );
         if (idx !== -1) {
           let val = row[idx];
           // Try parse numbers
-          if (val === '') {
+          if (val === '' || val === undefined) {
             val = null;
           } else if (!isNaN(val) && val !== null && val !== '') {
             val = Number(val);
@@ -344,7 +346,7 @@ export async function syncAllFromGoogleSheets() {
         }
       });
       return obj;
-    });
+    }).filter(obj => obj.id !== null && obj.id !== undefined && obj.id !== '');
   };
 
   const valueRanges = result.valueRanges;
