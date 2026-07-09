@@ -179,45 +179,107 @@ async function gapiFetch(url, options = {}) {
  * Finds or Creates the 'Ituang_Database' spreadsheet in user's Google Drive
  */
 export async function getOrCreateSpreadsheet() {
-  const cachedId = localStorage.getItem(STORAGE_KEYS.SHEET_ID);
-  if (cachedId) return cachedId;
+  let sheetId = localStorage.getItem(STORAGE_KEYS.SHEET_ID);
 
-  // 1. Search for existing file
-  const searchUrl = `https://www.googleapis.com/drive/v3/files?q=name='Ituang_Database' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false&fields=files(id)`;
-  const searchResult = await gapiFetch(searchUrl);
-  
-  if (searchResult.files && searchResult.files.length > 0) {
-    const sheetId = searchResult.files[0].id;
-    localStorage.setItem(STORAGE_KEYS.SHEET_ID, sheetId);
-    return sheetId;
+  if (!sheetId) {
+    // 1. Search for existing file
+    const searchUrl = `https://www.googleapis.com/drive/v3/files?q=name='Ituang_Database' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false&fields=files(id)`;
+    const searchResult = await gapiFetch(searchUrl);
+    
+    if (searchResult.files && searchResult.files.length > 0) {
+      sheetId = searchResult.files[0].id;
+      localStorage.setItem(STORAGE_KEYS.SHEET_ID, sheetId);
+    } else {
+      // 2. Create a new Spreadsheet with initial sheets
+      const createUrl = 'https://sheets.googleapis.com/v4/spreadsheets';
+      const body = {
+        properties: { title: 'Ituang_Database' },
+        sheets: [
+          { properties: { title: 'accounts' } },
+          { properties: { title: 'savings' } },
+          { properties: { title: 'lifegoals' } },
+          { properties: { title: 'transactions' } },
+          { properties: { title: 'budgets' } },
+          { properties: { title: 'memos' } }
+        ]
+      };
+
+      const createdSheet = await gapiFetch(createUrl, {
+        method: 'POST',
+        body: JSON.stringify(body)
+      });
+
+      sheetId = createdSheet.spreadsheetId;
+      localStorage.setItem(STORAGE_KEYS.SHEET_ID, sheetId);
+
+      // Write Headers for all tables
+      await writeHeaders(sheetId);
+      return sheetId;
+    }
   }
 
-  // 2. Create a new Spreadsheet with initial sheets
-  const createUrl = 'https://sheets.googleapis.com/v4/spreadsheets';
-  const body = {
-    properties: { title: 'Ituang_Database' },
-    sheets: [
-      { properties: { title: 'accounts' } },
-      { properties: { title: 'savings' } },
-      { properties: { title: 'lifegoals' } },
-      { properties: { title: 'transactions' } },
-      { properties: { title: 'budgets' } },
-      { properties: { title: 'memos' } }
-    ]
-  };
-
-  const createdSheet = await gapiFetch(createUrl, {
-    method: 'POST',
-    body: JSON.stringify(body)
-  });
-
-  const sheetId = createdSheet.spreadsheetId;
-  localStorage.setItem(STORAGE_KEYS.SHEET_ID, sheetId);
-
-  // 3. Write Headers for all tables
-  await writeHeaders(sheetId);
+  // Ensure all required sheets exist (adds any missing ones like lifegoals)
+  await ensureAllSheetsExist(sheetId);
 
   return sheetId;
+}
+
+async function ensureAllSheetsExist(sheetId) {
+  try {
+    const getUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets(properties(title))`;
+    const spreadsheetData = await gapiFetch(getUrl);
+    
+    const existingTitles = (spreadsheetData.sheets || []).map(s => s.properties?.title);
+    const requiredTitles = ['accounts', 'savings', 'lifegoals', 'transactions', 'budgets', 'memos'];
+    
+    const missingTitles = requiredTitles.filter(t => !existingTitles.includes(t));
+    
+    if (missingTitles.length > 0) {
+      // 1. Add missing sheets
+      const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`;
+      const requests = missingTitles.map(title => ({
+        addSheet: {
+          properties: { title }
+        }
+      }));
+      
+      await gapiFetch(batchUrl, {
+        method: 'POST',
+        body: JSON.stringify({ requests })
+      });
+      
+      // 2. Write headers for the missing sheets
+      const headersBatchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values:batchUpdate`;
+      const allHeaders = {
+        accounts: [['id', 'name', 'category', 'balance', 'created_at']],
+        savings: [['id', 'name', 'balance', 'created_at']],
+        lifegoals: [['id', 'name', 'target_amount', 'balance', 'image', 'created_at']],
+        transactions: [['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'lifegoal_from_id', 'lifegoal_to_id', 'notes', 'created_at', 'exclude_from_quota']],
+        budgets: [['id', 'category', 'amount', 'is_default', 'created_at']],
+        memos: [['id', 'title', 'content', 'color', 'date']]
+      };
+      
+      const data = missingTitles.map(title => {
+        const headerRow = allHeaders[title];
+        return {
+          range: `${title}!A1:${String.fromCharCode(65 + headerRow[0].length - 1)}1`,
+          values: headerRow
+        };
+      });
+      
+      await gapiFetch(headersBatchUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          valueInputOption: 'USER_ENTERED',
+          data
+        })
+      });
+    }
+  } catch (e) {
+    console.error('Failed to ensure all sheets exist:', e);
+    // Let it throw or continue, but throwing allows the sync process to report issues
+    throw e;
+  }
 }
 
 async function writeHeaders(sheetId) {
