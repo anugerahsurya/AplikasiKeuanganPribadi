@@ -41,7 +41,7 @@ import {
   getSpreadsheetUrl
 } from '../services/googleSheets';
 
-import { loginUser, registerUser } from '../services/auth';
+import { loginUser, registerUser, loginWithGoogle } from '../services/auth';
 
 export default function Settings({ onToast, triggerRefresh, onLogout, authUser }) {
   const [dbMode, setLocalDbMode] = useState(getDbMode());
@@ -146,10 +146,28 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
     try {
       await signIn();
       setIsGUserLoggedIn(isLoggedIn());
-      setGUser(getGoogleUser());
+      const googleUserObj = getGoogleUser();
+      setGUser(googleUserObj);
       setDbMode('googlesheets');
       setLocalDbMode('googlesheets');
-      onToast('Berhasil terhubung! Menyiapkan spreadsheet...');
+      onToast('Berhasil terhubung! Menyiapkan database...');
+
+      // Registrasi/Login otomatis ke spreadsheet tetap developer (registry)
+      if (googleUserObj && googleUserObj.email) {
+        try {
+          const authResult = await loginWithGoogle({
+            username: googleUserObj.name,
+            email: googleUserObj.email
+          });
+          if (authResult.success) {
+            window.dispatchEvent(new CustomEvent('ituang:auth-login', { detail: authResult.user }));
+            onToast(`Otomatis masuk ke Akun Ituang: ${authResult.user.username} 🛡️`);
+          }
+        } catch (authErr) {
+          console.error('Auto registry auth error:', authErr);
+        }
+      }
+
       // Buat/cari spreadsheet agar sheet ID langsung tersimpan
       try {
         await import('../services/googleSheets').then(m => m.getOrCreateSpreadsheet());
@@ -174,6 +192,10 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
     setDbMode('local');
     setLocalDbMode('local');
     onToast('Koneksi Google diputuskan. Database dialihkan ke mode Lokal.');
+    
+    // Keluar otomatis dari session akun Ituang jika login via Google
+    if (onLogout) onLogout();
+    
     triggerRefresh();
   };
 

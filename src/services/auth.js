@@ -186,3 +186,41 @@ export async function loginUser({ username, password }) {
     return { success: false, error: 'Koneksi ke server gagal. Periksa koneksi internet Anda.' };
   }
 }
+
+/**
+ * Login/Register otomatis menggunakan Google OAuth
+ * @param {{ username: string, email: string }} param0
+ * @returns {{ success: boolean, user?: object, error?: string }}
+ */
+export async function loginWithGoogle({ username, email }) {
+  checkScriptUrl();
+
+  if (!email) {
+    return { success: false, error: 'Email Google tidak valid.' };
+  }
+
+  try {
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'google_login',
+        username: username || email.split('@')[0],
+        email: email.trim().toLowerCase()
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      const user = { id: result.data.id, username: result.data.username, email: result.data.email };
+      saveSession(user);
+      return { success: true, user };
+    } else {
+      return { success: false, error: result.error || 'Autentikasi Google gagal.' };
+    }
+  } catch (err) {
+    console.error('Google auth database error:', err);
+    return { success: false, error: 'Koneksi ke user registry gagal.' };
+  }
+}

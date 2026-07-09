@@ -174,6 +174,47 @@ function doPost(e) {
       });
     }
 
+    if (action === 'google_login') {
+      const { username, email } = body;
+      if (!email) {
+        return buildResponse({ success: false, error: 'Email Google tidak boleh kosong.' });
+      }
+
+      // Cari berdasarkan email
+      const user = findUserByEmail(email.trim());
+      if (user) {
+        return buildResponse({
+          success: true,
+          data: {
+            id: user.id,
+            username: user.username,
+            email: user.email
+          }
+        });
+      }
+
+      // Registrasi otomatis jika belum ada
+      const baseUsername = (username || email.split('@')[0]).trim();
+      let uniqueUsername = baseUsername;
+      let counter = 1;
+      while (findUserByUsername(uniqueUsername)) {
+        uniqueUsername = baseUsername + counter;
+        counter++;
+      }
+
+      const id = generateUUID();
+      addUser(id, uniqueUsername, email.trim().toLowerCase(), 'oauth_user', 'oauth_user');
+
+      return buildResponse({
+        success: true,
+        data: {
+          id,
+          username: uniqueUsername,
+          email: email.trim().toLowerCase()
+        }
+      });
+    }
+
     return buildResponse({ success: false, error: 'Action tidak dikenal.' });
 
   } catch (err) {
