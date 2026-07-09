@@ -3,6 +3,7 @@ import { Plus, RefreshCw, FileDown, Search, Edit3, Trash2, Inbox, CheckSquare, S
 import { getAccounts, getAllTransactions, addTransaction, deleteTransaction, updateTransactionsDate, getSavings, getLifegoals } from '../services/db';
 import { fmtRp, fmtDate } from '../utils/format';
 import { getGoogleUser, isLoggedIn } from '../services/googleSheets';
+import Modal from '../components/Modal';
 import TransactionModal from '../components/TransactionModal';
 import CategoryIcon from '../components/CategoryIcon';
 
@@ -18,6 +19,17 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
+
+  // PDF Export States
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportStartDate, setExportStartDate] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+  });
+  const [exportEndDate, setExportEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [printTxs, setPrintTxs] = useState([]);
+  const [printPeriodLabel, setPrintPeriodLabel] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
 
   // Bulk Edit States
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
@@ -133,17 +145,45 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
     setIsModalOpen(true);
   };
 
-  // PDF Export trigger using window.print()
-  const handleExportPDF = () => {
+  // PDF Export handlers
+  const handleExportClick = () => {
+    setIsExportModalOpen(true);
+  };
+
+  const handleExportSubmit = (e) => {
+    e.preventDefault();
+    if (isExporting) return;
+
+    const start = new Date(exportStartDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(exportEndDate);
+    end.setHours(23, 59, 59, 999);
+
+    const filteredForPrint = transactions.filter(tx => {
+      const d = new Date(tx.created_at);
+      return d >= start && d <= end;
+    });
+
+    const formatDateLabel = (dateStr) => {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    };
+
+    setPrintTxs(filteredForPrint);
+    setPrintPeriodLabel(`${formatDateLabel(exportStartDate)} - ${formatDateLabel(exportEndDate)}`);
+    setIsExportModalOpen(false);
+
+    setIsExporting(true);
     onToast('Menyiapkan dokumen rekap... 📑');
     setTimeout(() => {
       window.print();
+      setIsExporting(false);
     }, 500);
   };
 
   // Calculate totals for report
-  const reportIncome = filteredTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const reportExpense = filteredTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const reportIncome = printTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const reportExpense = printTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const reportNet = reportIncome - reportExpense;
 
   const googleUser = getGoogleUser();
@@ -154,7 +194,7 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
     <div className="page active">
       {/* Page Actions / Sub Header */}
       <div className="section-header" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginBottom: '16px' }}>
-        <button className="btn btn-secondary" onClick={handleExportPDF} title="Download rekap PDF">
+        <button className="btn btn-secondary" onClick={handleExportClick} title="Download rekap PDF">
           <FileDown size={16} />
           <span>Unduh Rekap (PDF)</span>
         </button>
@@ -306,7 +346,7 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
           <div className="report-meta-section">
             <div>Dibuat Oleh: <strong>{userName}</strong></div>
             <div>Tanggal Cetak: {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-            <div>Status Filter: {filter === 'all' ? 'Semua Tipe' : filter === 'income' ? 'Pemasukan' : filter === 'expense' ? 'Pengeluaran' : 'Transfer'}</div>
+            <div>Periode: <strong>{printPeriodLabel || 'Semua'}</strong></div>
           </div>
         </div>
 
@@ -344,12 +384,15 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
             </tr>
           </thead>
           <tbody>
-            {filteredTxs.map((tx, idx) => {
+            {printTxs.map((tx, idx) => {
               const parts = [];
               if (tx.account_from_name) parts.push(`Dari: ${tx.account_from_name}`);
               else if (tx.savings_from_name) parts.push(`Dari: ${tx.savings_from_name}`);
+              else if (tx.lifegoal_from_name) parts.push(`Dari: ${tx.lifegoal_from_name}`);
+              
               if (tx.account_to_name) parts.push(`Ke: ${tx.account_to_name}`);
               else if (tx.savings_to_name) parts.push(`Ke: ${tx.savings_to_name}`);
+              else if (tx.lifegoal_to_name) parts.push(`Ke: ${tx.lifegoal_to_name}`);
               const flow = parts.join(', ');
 
               return (
@@ -465,6 +508,41 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
         savings={savings}
         lifegoals={lifegoals}
       />
+
+      {/* Export Period Picker Modal */}
+      <Modal isOpen={isExportModalOpen} title="Ekspor Rekap Laporan Keuangan" onClose={() => setIsExportModalOpen(false)}>
+        <form onSubmit={handleExportSubmit}>
+          <p style={{ fontSize: '13px', color: 'hsl(var(--text-secondary))', marginBottom: '16px' }}>
+            Pilih rentang tanggal transaksi yang ingin dicetak/diekspor ke dokumen rekap PDF.
+          </p>
+          <div className="form-group">
+            <label className="form-label">Tanggal Mulai</label>
+            <input
+              type="date"
+              className="form-control"
+              value={exportStartDate}
+              onChange={(e) => setExportStartDate(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Tanggal Selesai</label>
+            <input
+              type="date"
+              className="form-control"
+              value={exportEndDate}
+              onChange={(e) => setExportEndDate(e.target.value)}
+              required
+            />
+          </div>
+          <div className="modal-footer" style={{ marginTop: '24px' }}>
+            <button type="button" className="btn btn-ghost" onClick={() => setIsExportModalOpen(false)} disabled={isExporting}>Batal</button>
+            <button type="submit" className="btn btn-primary" disabled={isExporting}>
+              {isExporting ? 'Menyiapkan...' : 'Cetak Rekap'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -1083,6 +1083,11 @@ select.form-control {
 }
 
 @media print {
+  @page {
+    margin-top: 2cm;
+    margin-bottom: 2cm;
+  }
+
   /* Hide all screen layout elements completely from the printed output flow */
   .sidebar, 
   .mobile-header, 
