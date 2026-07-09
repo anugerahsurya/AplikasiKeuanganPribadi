@@ -274,26 +274,26 @@ export async function syncAllToGoogleSheets(data) {
     valueInputOption: 'USER_ENTERED',
     data: [
       {
-        range: `accounts!A2:E${data.accounts.length + 1}`,
-        values: formatRows(data.accounts, ['id', 'name', 'category', 'balance', 'created_at'])
+        range: `accounts!A1:E${data.accounts.length + 1}`,
+        values: [['id', 'name', 'category', 'balance', 'created_at'], ...formatRows(data.accounts, ['id', 'name', 'category', 'balance', 'created_at'])]
       },
       {
-        range: `savings!A2:D${data.savings.length + 1}`,
-        values: formatRows(data.savings, ['id', 'name', 'balance', 'created_at'])
+        range: `savings!A1:D${data.savings.length + 1}`,
+        values: [['id', 'name', 'balance', 'created_at'], ...formatRows(data.savings, ['id', 'name', 'balance', 'created_at'])]
       },
       {
-        range: `transactions!A2:L${data.transactions.length + 1}`,
-        values: formatRows(data.transactions, ['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'notes', 'created_at', 'exclude_from_quota'])
+        range: `transactions!A1:L${data.transactions.length + 1}`,
+        values: [['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'notes', 'created_at', 'exclude_from_quota'], ...formatRows(data.transactions, ['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'notes', 'created_at', 'exclude_from_quota'])]
       },
       {
-        range: `budgets!A2:E${data.budgets.length + 1}`,
-        values: formatRows(data.budgets, ['id', 'category', 'amount', 'is_default', 'created_at'])
+        range: `budgets!A1:E${data.budgets.length + 1}`,
+        values: [['id', 'category', 'amount', 'is_default', 'created_at'], ...formatRows(data.budgets, ['id', 'category', 'amount', 'is_default', 'created_at'])]
       },
       {
-        range: `memos!A2:E${data.memos.length + 1}`,
-        values: formatRows(data.memos, ['id', 'title', 'content', 'color', 'date'])
+        range: `memos!A1:E${data.memos.length + 1}`,
+        values: [['id', 'title', 'content', 'color', 'date'], ...formatRows(data.memos, ['id', 'title', 'content', 'color', 'date'])]
       }
-    ].filter(d => d.values.length > 0) // Filter out empty lists
+    ].filter(d => d.values.length > 0)
   };
 
   if (writeBody.data.length > 0) {
@@ -322,9 +322,18 @@ export async function syncAllFromGoogleSheets() {
   
   // Helper to parse rows back to object arrays
   const parseSheet = (valueRange, headers) => {
-    if (!valueRange || !valueRange.values || valueRange.values.length <= 1) return [];
+    if (!valueRange || !valueRange.values || valueRange.values.length === 0) return [];
     const rows = valueRange.values;
-    const sheetHeaders = rows[0];
+    let sheetHeaders = rows[0] || [];
+    
+    // Check if the header row is completely empty
+    const isFirstRowEmpty = sheetHeaders.length === 0 || sheetHeaders.every(h => !h || h.toString().trim() === '');
+    if (isFirstRowEmpty) {
+      sheetHeaders = headers;
+    }
+    
+    // If there is only one row and it's empty, there is no data
+    if (rows.length === 1 && isFirstRowEmpty) return [];
     
     return rows.slice(1).map(row => {
       const obj = {};

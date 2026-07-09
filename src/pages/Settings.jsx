@@ -585,9 +585,18 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
         <div className="grid grid-2" style={{ gap: '24px' }}>
           
           {/* Client ID Setting Form */}
-          <form onSubmit={handleSaveClientId} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <form onSubmit={handleSaveClientId} style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            justifyContent: 'space-between', 
+            backgroundColor: 'hsl(var(--bg-input))', 
+            padding: '24px', 
+            borderRadius: '12px', 
+            border: '1px solid hsl(var(--border))',
+            minHeight: '190px'
+          }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Google OAuth Client ID</label>
+              <label className="form-label" style={{ marginBottom: '8px' }}>Google OAuth Client ID</label>
               <input
                 type="text"
                 className="form-control"
@@ -597,7 +606,7 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
                 style={{ fontSize: '12px' }}
               />
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '16px' }}>
               <button type="submit" className="btn btn-secondary btn-sm">Simpan Client ID</button>
               <button 
                 type="button" 
@@ -612,7 +621,16 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
           </form>
 
           {/* Login Status */}
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', backgroundColor: 'hsl(var(--bg-input))', padding: '20px', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            justifyContent: 'space-between', 
+            backgroundColor: 'hsl(var(--bg-input))', 
+            padding: '24px', 
+            borderRadius: '12px', 
+            border: '1px solid hsl(var(--border))',
+            minHeight: '190px'
+          }}>
             {isGUserLoggedIn && gUser ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -671,7 +689,15 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
                   )}
                   <button 
                     className="btn btn-success btn-sm" 
-                    onClick={handleSyncToSheets} 
+                    onClick={() => openConfirm({
+                      title: '📤 Upload Data ke Cloud?',
+                      message: 'Tindakan ini akan mengunggah data lokal saat ini dan MENIMPA data lama di spreadsheet Google Drive Anda. Lanjutkan?',
+                      variant: 'success',
+                      onConfirm: () => {
+                        closeConfirm();
+                        handleSyncToSheets();
+                      }
+                    })}
                     disabled={syncing}
                     style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
@@ -680,7 +706,15 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
                   </button>
                   <button 
                     className="btn btn-secondary btn-sm" 
-                    onClick={handleSyncFromSheets} 
+                    onClick={() => openConfirm({
+                      title: '📥 Download Data dari Cloud?',
+                      message: 'Tindakan ini akan mengunduh data dari spreadsheet Google Drive Anda dan MENIMPA seluruh data lokal saat ini. Data lokal yang belum di-upload akan hilang. Lanjutkan?',
+                      variant: 'primary',
+                      onConfirm: () => {
+                        closeConfirm();
+                        handleSyncFromSheets();
+                      }
+                    })}
                     disabled={syncing}
                     style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
