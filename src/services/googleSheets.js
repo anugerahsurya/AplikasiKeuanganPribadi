@@ -258,11 +258,11 @@ export async function syncAllToGoogleSheets(data) {
     valueInputOption: 'USER_ENTERED',
     data: [
       // Clear ranges first (from A2 downwards)
-      { range: 'accounts!A2:Z1000', values: Array(1000).fill(Array(5).fill('')) },
-      { range: 'savings!A2:Z1000', values: Array(1000).fill(Array(4).fill('')) },
-      { range: 'transactions!A2:Z10000', values: Array(10000).fill(Array(12).fill('')) },
-      { range: 'budgets!A2:Z1000', values: Array(1000).fill(Array(5).fill('')) },
-      { range: 'memos!A2:Z1000', values: Array(1000).fill(Array(5).fill('')) }
+      { range: 'accounts!A2:Z1000', values: Array(999).fill(Array(5).fill('')) },
+      { range: 'savings!A2:Z1000', values: Array(999).fill(Array(4).fill('')) },
+      { range: 'transactions!A2:Z10000', values: Array(9999).fill(Array(12).fill('')) },
+      { range: 'budgets!A2:Z1000', values: Array(999).fill(Array(5).fill('')) },
+      { range: 'memos!A2:Z1000', values: Array(999).fill(Array(5).fill('')) }
     ]
   };
 
