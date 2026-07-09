@@ -51,6 +51,17 @@ export default function Budgeting({ onToast, refreshTrigger, triggerRefresh }) {
   const [addName, setAddName] = useState('');
   const [addAmount, setAddAmount] = useState('');
 
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
+
+  useEffect(() => {
+    if (!isEditModalOpen) setIsSubmittingEdit(false);
+  }, [isEditModalOpen]);
+
+  useEffect(() => {
+    if (!isAddModalOpen) setIsSubmittingAdd(false);
+  }, [isAddModalOpen]);
+
   useEffect(() => {
     loadData();
   }, [period, refreshTrigger]);
@@ -91,11 +102,13 @@ export default function Budgeting({ onToast, refreshTrigger, triggerRefresh }) {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmittingEdit) return;
     if (parseFloat(editAmount) < 0) {
       onToast('Nominal anggaran tidak boleh negatif.', 'error');
       return;
     }
 
+    setIsSubmittingEdit(true);
     try {
       const amount = parseFloat(editAmount) || 0;
       await updateBudget({ id: editId, amount });
@@ -104,11 +117,14 @@ export default function Budgeting({ onToast, refreshTrigger, triggerRefresh }) {
       triggerRefresh();
     } catch (err) {
       onToast('Gagal mengubah anggaran.', 'error');
+    } finally {
+      setIsSubmittingEdit(false);
     }
   };
 
   const handleAddSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmittingAdd) return;
     const category = addName.trim();
     if (!category) {
       onToast('Nama kategori kustom harus diisi.', 'error');
@@ -122,6 +138,7 @@ export default function Budgeting({ onToast, refreshTrigger, triggerRefresh }) {
       return;
     }
 
+    setIsSubmittingAdd(true);
     try {
       const amount = parseFloat(addAmount) || 0;
       await addBudget({ category, amount });
@@ -132,6 +149,8 @@ export default function Budgeting({ onToast, refreshTrigger, triggerRefresh }) {
       triggerRefresh();
     } catch (err) {
       onToast('Gagal menambahkan kategori kustom.', 'error');
+    } finally {
+      setIsSubmittingAdd(false);
     }
   };
 
@@ -342,8 +361,10 @@ export default function Budgeting({ onToast, refreshTrigger, triggerRefresh }) {
             />
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={() => setIsEditModalOpen(false)}>Batal</button>
-            <button type="submit" className="btn btn-primary">Simpan</button>
+            <button type="button" className="btn btn-ghost" onClick={() => setIsEditModalOpen(false)} disabled={isSubmittingEdit}>Batal</button>
+            <button type="submit" className="btn btn-primary" disabled={isSubmittingEdit}>
+              {isSubmittingEdit ? 'Menyimpan...' : 'Simpan'}
+            </button>
           </div>
         </form>
       </Modal>
@@ -377,8 +398,10 @@ export default function Budgeting({ onToast, refreshTrigger, triggerRefresh }) {
             />
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={() => setIsAddModalOpen(false)}>Batal</button>
-            <button type="submit" className="btn btn-primary">Tambah</button>
+            <button type="button" className="btn btn-ghost" onClick={() => setIsAddModalOpen(false)} disabled={isSubmittingAdd}>Batal</button>
+            <button type="submit" className="btn btn-primary" disabled={isSubmittingAdd}>
+              {isSubmittingAdd ? 'Menambahkan...' : 'Tambah'}
+            </button>
           </div>
         </form>
       </Modal>

@@ -15,6 +15,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
   const [toId, setToId] = useState('');
   const [includeInQuota, setIncludeInQuota] = useState(true);
   const [categories, setCategories] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getLocalDateString = (d) => {
     const tzoffset = d.getTimezoneOffset() * 60000;
@@ -26,6 +27,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
   // Synchronize when editingTx or modal state changes
   useEffect(() => {
     if (isOpen) {
+      setIsSubmitting(false);
       // Load active categories from budgets, with fallback to default categories
       const budgets = getBudgets();
       const catList = budgets.length > 0 ? budgets.map(b => b.category) : Object.keys(CAT_ICONS).filter(cat => cat !== 'Pindah Dana');
@@ -79,8 +81,10 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     if (!itemName.trim()) {
       alert('Keterangan transaksi harus diisi.');
       return;
@@ -133,7 +137,14 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
       }
     }
 
-    onSave(data, editingTx?.id);
+    setIsSubmitting(true);
+    try {
+      await onSave(data, editingTx?.id);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -346,9 +357,9 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
         </div>
 
         <div className="modal-footer">
-          <button type="button" className="btn btn-ghost" onClick={onClose}>Batal</button>
-          <button type="submit" className="btn btn-primary">
-            {editingTx ? 'Simpan Perubahan' : 'Simpan Transaksi'}
+          <button type="button" className="btn btn-ghost" onClick={onClose} disabled={isSubmitting}>Batal</button>
+          <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+            {isSubmitting ? 'Menyimpan...' : (editingTx ? 'Simpan Perubahan' : 'Simpan Transaksi')}
           </button>
         </div>
       </form>

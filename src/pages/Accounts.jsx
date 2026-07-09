@@ -10,6 +10,11 @@ export default function Accounts({ onToast, refreshTrigger, triggerRefresh }) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Bank');
   const [balance, setBalance] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!isModalOpen) setIsSubmitting(false);
+  }, [isModalOpen]);
 
   useEffect(() => {
     setAccounts(getAccounts());
@@ -17,11 +22,13 @@ export default function Accounts({ onToast, refreshTrigger, triggerRefresh }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!name.trim()) {
       onToast('Nama rekening harus diisi.', 'error');
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const numBalance = parseFloat(balance) || 0;
       await addAccount({
@@ -38,6 +45,8 @@ export default function Accounts({ onToast, refreshTrigger, triggerRefresh }) {
       triggerRefresh();
     } catch (err) {
       onToast('Gagal menambahkan rekening.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -195,8 +204,10 @@ export default function Accounts({ onToast, refreshTrigger, triggerRefresh }) {
             />
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={() => setIsModalOpen(false)}>Batal</button>
-            <button type="submit" className="btn btn-primary">Simpan</button>
+            <button type="button" className="btn btn-ghost" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>Batal</button>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+            </button>
           </div>
         </form>
       </Modal>

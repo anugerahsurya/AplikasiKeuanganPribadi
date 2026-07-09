@@ -21,6 +21,17 @@ export default function Savings({ onToast, refreshTrigger, triggerRefresh }) {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [targetAccountId, setTargetAccountId] = useState('');
 
+  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
+  const [isSubmittingWithdraw, setIsSubmittingWithdraw] = useState(false);
+
+  useEffect(() => {
+    if (!isAddModalOpen) setIsSubmittingAdd(false);
+  }, [isAddModalOpen]);
+
+  useEffect(() => {
+    if (!isWithdrawModalOpen) setIsSubmittingWithdraw(false);
+  }, [isWithdrawModalOpen]);
+
   useEffect(() => {
     setSavings(getSavings());
     setAccounts(getAccounts());
@@ -28,11 +39,13 @@ export default function Savings({ onToast, refreshTrigger, triggerRefresh }) {
 
   const handleAddSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmittingAdd) return;
     if (!name.trim()) {
       onToast('Nama tabungan harus diisi.', 'error');
       return;
     }
 
+    setIsSubmittingAdd(true);
     try {
       const numBalance = parseFloat(balance) || 0;
       await addSaving({
@@ -47,6 +60,8 @@ export default function Savings({ onToast, refreshTrigger, triggerRefresh }) {
       triggerRefresh();
     } catch (err) {
       onToast('Gagal membuat tabungan.', 'error');
+    } finally {
+      setIsSubmittingAdd(false);
     }
   };
 
@@ -71,6 +86,7 @@ export default function Savings({ onToast, refreshTrigger, triggerRefresh }) {
 
   const handleWithdrawSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmittingWithdraw) return;
     if (!withdrawAmount || Number(withdrawAmount) <= 0) {
       onToast('Jumlah pencairan harus lebih dari 0.', 'error');
       return;
@@ -84,6 +100,7 @@ export default function Savings({ onToast, refreshTrigger, triggerRefresh }) {
       return;
     }
 
+    setIsSubmittingWithdraw(true);
     try {
       const accId = parseInt(targetAccountId);
       const accName = accounts.find(a => a.id === accId)?.name || '';
@@ -107,6 +124,8 @@ export default function Savings({ onToast, refreshTrigger, triggerRefresh }) {
       triggerRefresh();
     } catch (err) {
       onToast('Gagal mencairkan tabungan.', 'error');
+    } finally {
+      setIsSubmittingWithdraw(false);
     }
   };
 
@@ -217,8 +236,10 @@ export default function Savings({ onToast, refreshTrigger, triggerRefresh }) {
             />
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-ghost" onClick={() => setIsAddModalOpen(false)}>Batal</button>
-            <button type="submit" className="btn btn-primary">Simpan</button>
+            <button type="button" className="btn btn-ghost" onClick={() => setIsAddModalOpen(false)} disabled={isSubmittingAdd}>Batal</button>
+            <button type="submit" className="btn btn-primary" disabled={isSubmittingAdd}>
+              {isSubmittingAdd ? 'Menyimpan...' : 'Simpan'}
+            </button>
           </div>
         </form>
       </Modal>
@@ -273,8 +294,10 @@ export default function Savings({ onToast, refreshTrigger, triggerRefresh }) {
             </div>
 
             <div className="modal-footer">
-              <button type="button" className="btn btn-ghost" onClick={() => setIsWithdrawModalOpen(false)}>Batal</button>
-              <button type="submit" className="btn btn-success">Cairkan Sekarang</button>
+              <button type="button" className="btn btn-ghost" onClick={() => setIsWithdrawModalOpen(false)} disabled={isSubmittingWithdraw}>Batal</button>
+              <button type="submit" className="btn btn-success" disabled={isSubmittingWithdraw}>
+                {isSubmittingWithdraw ? 'Memproses...' : 'Cairkan Sekarang'}
+              </button>
             </div>
           </form>
         )}
