@@ -7,7 +7,6 @@ import {
   Key,
   Save,
   Cloud,
-  Upload,
   User,
   Smartphone,
   Copy,
@@ -26,12 +25,7 @@ import {
   setDbMode, 
   syncFromSheets, 
   syncToSheets,
-  importDatabase,
-  mergeDbWithCloud,
-  getAccounts,
-  getSavings,
-  getAllTransactions,
-  getMemos
+  mergeDbWithCloud
 } from '../services/db';
 import { 
   getClientId, 
@@ -112,28 +106,6 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
     localStorage.setItem('ituang_user_name', name);
     onToast('Nama profil berhasil diperbarui! 👤');
     triggerRefresh();
-  };
-
-  const handleImportJson = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const parsedData = JSON.parse(event.target.result);
-        const success = await importDatabase(parsedData);
-        if (success) {
-          onToast('Berhasil mengimpor data dari file backup!');
-          triggerRefresh();
-        } else {
-          onToast('Format file JSON tidak valid.', 'error');
-        }
-      } catch (err) {
-        onToast('Gagal membaca file JSON. Pastikan file valid.', 'error');
-      }
-    };
-    reader.readAsText(file);
   };
 
   // Sync state when Google OAuth state changes
@@ -546,33 +518,6 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
             </small>
           </div>
         </div>
-
-        {/* RESTORE BACKUP SETTINGS */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '16px', margin: 0 }}>
-          <h2 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Upload size={18} style={{ color: 'hsl(var(--color-accent))' }} />
-            <span>Pulihkan Data dari Backup JSON</span>
-          </h2>
-          <p style={{ fontSize: '12.5px', color: 'hsl(var(--text-secondary))', lineHeight: 1.5 }}>
-            Jika data Anda ter-reset, Anda dapat memulihkannya kembali menggunakan file backup JSON Anda. Pilih file backup (misalnya <code>ituang_import.json</code>) untuk mengembalikan seluruh catatan keuangan Anda.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', alignSelf: 'flex-start' }}>
-              <Upload size={14} />
-              <span>Pilih File Backup JSON</span>
-              <input 
-                type="file" 
-                accept=".json" 
-                onChange={handleImportJson} 
-                style={{ display: 'none' }} 
-              />
-            </label>
-            <small style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
-              Catatan: Memulihkan backup akan menimpa data offline lokal saat ini.
-            </small>
-          </div>
-        </div>
-
       </div>
 
       {/* GOOGLE SHEET CONFIGURATION SECTION */}
@@ -651,14 +596,14 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' }}>
                   {spreadsheetUrl ? (
                     <a
                       href={spreadsheetUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="btn btn-primary btn-sm"
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+                      style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', textDecoration: 'none', width: '100%' }}
                     >
                       <ExternalLink size={12} />
                       <span>Buka Google Sheets</span>
@@ -668,7 +613,7 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
                       type="button"
                       className="btn btn-primary btn-sm"
                       disabled={syncing}
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', width: '100%' }}
                       onClick={async () => {
                         setSyncing(true);
                         try {
@@ -687,6 +632,7 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
                       <span>Lihat Spreadsheet</span>
                     </button>
                   )}
+                  
                   <button 
                     className="btn btn-success btn-sm" 
                     onClick={() => openConfirm({
@@ -699,11 +645,12 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
                       }
                     })}
                     disabled={syncing}
-                    style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', width: '100%' }}
                   >
                     <RefreshCw size={12} className={syncing ? 'spinning' : ''} />
                     <span>Upload ke Cloud</span>
                   </button>
+
                   <button 
                     className="btn btn-secondary btn-sm" 
                     onClick={() => openConfirm({
@@ -716,15 +663,44 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
                       }
                     })}
                     disabled={syncing}
-                    style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', width: '100%' }}
                   >
                     <RefreshCw size={12} className={syncing ? 'spinning' : ''} />
                     <span>Download dari Cloud</span>
                   </button>
+
+                  <button 
+                    className="btn btn-warning btn-sm" 
+                    onClick={() => openConfirm({
+                      title: '🔄 Gabungkan Data (Merge)?',
+                      message: 'Proses ini akan mencocokkan data lokal dengan Google Sheets secara cerdas untuk menghindari duplikasi. Data lokal dan cloud akan digabungkan menjadi satu. Lanjutkan?',
+                      variant: 'success',
+                      onConfirm: async () => {
+                        closeConfirm();
+                        setSyncing(true);
+                        try {
+                          await mergeDbWithCloud();
+                          onToast('Migrasi berhasil! Data lokal dan cloud Anda telah digabungkan. 🎉');
+                          triggerRefresh();
+                        } catch (e) {
+                          console.error(e);
+                          onToast('Gagal melakukan penggabungan data: ' + e.message, 'error');
+                        } finally {
+                          setSyncing(false);
+                        }
+                      }
+                    })}
+                    disabled={syncing}
+                    style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', width: '100%' }}
+                  >
+                    <RefreshCw size={12} className={syncing ? 'spinning' : ''} />
+                    <span>Gabungkan Data (Merge)</span>
+                  </button>
+
                   <button 
                     className="btn btn-danger btn-sm" 
                     onClick={handleGoogleLogout}
-                    style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                    style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', width: '100%' }}
                   >
                     <LogOut size={12} />
                     <span>Putuskan</span>
@@ -775,208 +751,7 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
         )}
       </div>
 
-      {/* DATA MIGRATION SECTION */}
-      <div className="card" style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <h2 style={{ fontSize: '15px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Cloud size={18} style={{ color: 'hsl(var(--color-accent))' }} />
-          <span>Migrasi Data (Lokal ➔ Cloud Spreadsheet)</span>
-        </h2>
-        
-        {isGUserLoggedIn ? (
-          <>
-            <p style={{ fontSize: '12.5px', color: 'hsl(var(--text-secondary))', lineHeight: 1.5 }}>
-              Anda terhubung dengan Google Sheets. Gunakan fitur migrasi di bawah ini untuk memindahkan atau menyelaraskan data agar tidak ada data yang hilang saat beralih mode database.
-            </p>
 
-            {/* Local Data Stats Summary */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(4, 1fr)', 
-              gap: '12px', 
-              backgroundColor: 'hsl(var(--bg-input))', 
-              padding: '12px 16px', 
-              borderRadius: '8px', 
-              border: '1px solid hsl(var(--border))',
-              fontSize: '12px'
-            }}>
-              <div>
-                <span style={{ color: 'hsl(var(--text-muted))', display: 'block' }}>Tempat Saldo</span>
-                <strong style={{ fontSize: '14px' }}>{getAccounts().length}</strong>
-              </div>
-              <div>
-                <span style={{ color: 'hsl(var(--text-muted))', display: 'block' }}>Tabungan</span>
-                <strong style={{ fontSize: '14px' }}>{getSavings().length}</strong>
-              </div>
-              <div>
-                <span style={{ color: 'hsl(var(--text-muted))', display: 'block' }}>Transaksi</span>
-                <strong style={{ fontSize: '14px' }}>{getAllTransactions().length}</strong>
-              </div>
-              <div>
-                <span style={{ color: 'hsl(var(--text-muted))', display: 'block' }}>Catatan/Memo</span>
-                <strong style={{ fontSize: '14px' }}>{getMemos().length}</strong>
-              </div>
-            </div>
-
-            {/* Migration Options */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '8px' }}>
-              {/* Option A: Merge */}
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                padding: '16px', 
-                borderRadius: '10px', 
-                border: '1px solid hsl(var(--color-success) / 0.3)',
-                backgroundColor: 'hsl(var(--color-success) / 0.03)',
-                gap: '16px'
-              }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span style={{ fontWeight: 600, fontSize: '13.5px', color: 'hsl(var(--color-success))', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>Pilihan 1: Gabungkan Data (Merge)</span>
-                    <span style={{ fontSize: '10px', backgroundColor: 'hsl(var(--color-success) / 0.15)', padding: '2px 6px', borderRadius: '4px' }}>Sangat Direkomendasikan</span>
-                  </span>
-                  <span style={{ fontSize: '12px', color: 'hsl(var(--text-secondary))', lineHeight: '1.4' }}>
-                    Gabungkan data offline lokal saat ini dengan data di Google Sheets secara cerdas. Menghindari duplikasi transaksi dan mempertahankan semua relasi saldo.
-                  </span>
-                </div>
-                <button 
-                  className="btn btn-success btn-sm" 
-                  onClick={() => openConfirm({
-                    title: 'Konfirmasi: Gabungkan Data',
-                    message: 'Proses ini akan mencocokkan data lokal dengan Google Sheets secara cerdas untuk menghindari duplikasi. Data lokal dan cloud akan digabungkan menjadi satu. Lanjutkan?',
-                    variant: 'success',
-                    onConfirm: async () => {
-                      closeConfirm();
-                      setSyncing(true);
-                      try {
-                        await mergeDbWithCloud();
-                        onToast('Migrasi berhasil! Data lokal dan cloud Anda telah digabungkan. 🎉');
-                        triggerRefresh();
-                      } catch (e) {
-                        console.error(e);
-                        onToast('Gagal melakukan penggabungan data: ' + e.message, 'error');
-                      } finally {
-                        setSyncing(false);
-                      }
-                    }
-                  })}
-                  disabled={syncing}
-                  style={{ flexShrink: 0 }}
-                >
-                  Mulai Gabungkan
-                </button>
-              </div>
-
-              {/* Option B: Upload Overwrite */}
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                padding: '16px', 
-                borderRadius: '10px', 
-                border: '1px solid hsl(var(--border))',
-                gap: '16px'
-              }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span style={{ fontWeight: 600, fontSize: '13.5px' }}>Pilihan 2: Ekspor Lokal ke Cloud (Overwrite Cloud)</span>
-                  <span style={{ fontSize: '12px', color: 'hsl(var(--text-secondary))', lineHeight: '1.4' }}>
-                    Unggah data lokal Anda ke Google Sheets dan hapus data lama yang ada di cloud. Gunakan ini jika Google Sheets masih kosong atau tidak relevan.
-                  </span>
-                </div>
-                <button 
-                  className="btn btn-secondary btn-sm" 
-                  onClick={() => openConfirm({
-                    title: '⚠️ Ekspor Lokal ke Cloud',
-                    message: 'PERINGATAN: Opsi ini akan menghapus dan menimpa seluruh data keuangan di Google Sheets Anda dengan data lokal saat ini. Data cloud yang ada sebelumnya akan hilang permanen. Lanjutkan?',
-                    variant: 'danger',
-                    onConfirm: async () => {
-                      closeConfirm();
-                      setSyncing(true);
-                      try {
-                        await syncToSheets();
-                        onToast('Migrasi berhasil! Data lokal Anda telah diunggah ke Google Sheets. ☁️');
-                      } catch (e) {
-                        console.error(e);
-                        onToast('Gagal mengunggah data: ' + e.message, 'error');
-                      } finally {
-                        setSyncing(false);
-                      }
-                    }
-                  })}
-                  disabled={syncing}
-                  style={{ flexShrink: 0 }}
-                >
-                  Ekspor ke Cloud
-                </button>
-              </div>
-
-              {/* Option C: Download Overwrite */}
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                padding: '16px', 
-                borderRadius: '10px', 
-                border: '1px solid hsl(var(--border))',
-                gap: '16px'
-              }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span style={{ fontWeight: 600, fontSize: '13.5px', color: 'hsl(var(--color-danger))' }}>Pilihan 3: Impor Cloud ke Lokal (Overwrite Lokal)</span>
-                  <span style={{ fontSize: '12px', color: 'hsl(var(--text-secondary))', lineHeight: '1.4' }}>
-                    Unduh data dari Google Sheets dan timpa seluruh database lokal saat ini. <strong>Peringatan:</strong> Seluruh data lokal Anda saat ini akan dihapus!
-                  </span>
-                </div>
-                <button 
-                  className="btn btn-danger btn-sm" 
-                  onClick={() => openConfirm({
-                    title: '⛔ Impor Cloud ke Lokal',
-                    message: 'PERINGATAN SANGAT PENTING: Opsi ini akan menghapus seluruh data lokal saat ini dan menggantinya dengan data dari Google Sheets. Data lokal yang ada sebelumnya akan hilang permanen. Lanjutkan?',
-                    variant: 'danger',
-                    onConfirm: async () => {
-                      closeConfirm();
-                      setSyncing(true);
-                      try {
-                        const success = await syncFromSheets();
-                        if (success) {
-                          onToast('Migrasi berhasil! Data lokal digantikan dengan data dari Google Sheets. 📥');
-                          triggerRefresh();
-                        } else {
-                          onToast('Koneksi gagal atau database sheet kosong.', 'error');
-                        }
-                      } catch (e) {
-                        console.error(e);
-                        onToast('Gagal mengunduh data: ' + e.message, 'error');
-                      } finally {
-                        setSyncing(false);
-                      }
-                    }
-                  })}
-                  disabled={syncing}
-                  style={{ flexShrink: 0 }}
-                >
-                  Impor dari Cloud
-                </button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', backgroundColor: 'hsl(var(--bg-input))', borderRadius: '10px', border: '1px solid hsl(var(--border))' }}>
-            <span style={{ fontSize: '24px' }}>⚠️</span>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-primary))' }}>Database Online Belum Siap</span>
-            <span style={{ fontSize: '12.5px', color: 'hsl(var(--text-secondary))', maxWidth: '380px', lineHeight: '1.5' }}>
-              Anda belum menghubungkan Client ID Google atau belum login ke akun Google. Sambungkan terlebih dahulu untuk memigrasi data lokal Anda ke spreadsheet online.
-            </span>
-            <button 
-              type="button" 
-              className="btn btn-primary btn-sm" 
-              onClick={() => setShowSetupModal(true)}
-              style={{ marginTop: '8px' }}
-            >
-              Lihat Langkah Konfigurasi
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* MOBILE ACCESS CARD */}
       {googleClientId && (
