@@ -138,7 +138,7 @@ export async function syncToSheets() {
 // ── ACCOUNTS ──────────────────────────────────────────────────────────
 
 export function getAccounts() {
-  return [...dbState.accounts].sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
+  return [...dbState.accounts].sort((a, b) => (a.category || '').localeCompare(b.category || '') || (a.name || '').localeCompare(b.name || ''));
 }
 
 export async function addAccount({ name, category, balance }) {
@@ -178,7 +178,7 @@ export async function updateAccountBalance(id, balance) {
 // ── SAVINGS ───────────────────────────────────────────────────────────
 
 export function getSavings() {
-  return [...dbState.savings].sort((a, b) => a.name.localeCompare(b.name));
+  return [...dbState.savings].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 }
 
 export async function addSaving({ name, balance }) {
@@ -460,7 +460,7 @@ export function getMonthlyChart() {
 
   // Sort and limit to 12
   return Object.values(monthlyData)
-    .sort((a, b) => a.period.localeCompare(b.period))
+    .sort((a, b) => (a.period || '').localeCompare(b.period || ''))
     .slice(-12);
 }
 
@@ -490,7 +490,7 @@ export function getCategoryBreakdown(year, month) {
 // ── BUDGETS ───────────────────────────────────────────────────────────
 
 export function getBudgets() {
-  return [...dbState.budgets].sort((a, b) => b.is_default - a.is_default || a.category.localeCompare(b.category));
+  return [...dbState.budgets].sort((a, b) => b.is_default - a.is_default || (a.category || '').localeCompare(b.category || ''));
 }
 
 export async function addBudget({ category, amount }) {
@@ -553,7 +553,7 @@ export function getBudgetProgress(year, month) {
       remaining,
       pct
     };
-  }).sort((a, b) => b.is_default - a.is_default || a.category.localeCompare(b.category));
+  }).sort((a, b) => b.is_default - a.is_default || (a.category || '').localeCompare(b.category || ''));
 }
 
 // ── MEMOS ─────────────────────────────────────────────────────────────
