@@ -225,7 +225,7 @@ async function writeHeaders(sheetId) {
     valueInputOption: 'USER_ENTERED',
     data: [
       { range: 'accounts!A1:E1', values: [['id', 'name', 'category', 'balance', 'created_at']] },
-      { range: 'savings!A1:C1', values: [['id', 'name', 'balance', 'created_at']] },
+      { range: 'savings!A1:D1', values: [['id', 'name', 'balance', 'created_at']] },
       { range: 'transactions!A1:L1', values: [['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'notes', 'created_at', 'exclude_from_quota']] },
       { range: 'budgets!A1:E1', values: [['id', 'category', 'amount', 'is_default', 'created_at']] },
       { range: 'memos!A1:E1', values: [['id', 'title', 'content', 'color', 'date']] }
@@ -278,7 +278,7 @@ export async function syncAllToGoogleSheets(data) {
         values: formatRows(data.accounts, ['id', 'name', 'category', 'balance', 'created_at'])
       },
       {
-        range: `savings!A2:C${data.savings.length + 1}`,
+        range: `savings!A2:D${data.savings.length + 1}`,
         values: formatRows(data.savings, ['id', 'name', 'balance', 'created_at'])
       },
       {
