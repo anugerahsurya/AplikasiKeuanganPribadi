@@ -5,7 +5,7 @@ import CategoryIcon from './CategoryIcon';
 import { ArrowUpRight, ArrowDownLeft, RefreshCw } from 'lucide-react';
 import { getBudgets } from '../services/db';
 
-export default function TransactionModal({ isOpen, onClose, onSave, editingTx, accounts = [], savings = [] }) {
+export default function TransactionModal({ isOpen, onClose, onSave, editingTx, accounts = [], savings = [], lifegoals = [] }) {
   const [type, setType] = useState('expense'); // 'income' | 'expense' | 'transfer'
   const [category, setCategory] = useState('Makanan');
   const [itemName, setItemName] = useState('');
@@ -41,10 +41,10 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
         setAmount(editingTx.amount.toString());
         setNotes(editingTx.notes || '');
         
-        const fId = editingTx.account_from_id ? `account:${editingTx.account_from_id}` : editingTx.savings_from_id ? `saving:${editingTx.savings_from_id}` : '';
+        const fId = editingTx.account_from_id ? `account:${editingTx.account_from_id}` : editingTx.savings_from_id ? `saving:${editingTx.savings_from_id}` : editingTx.lifegoal_from_id ? `lifegoal:${editingTx.lifegoal_from_id}` : '';
         setFromId(fId);
 
-        const tId = editingTx.account_to_id ? `account:${editingTx.account_to_id}` : editingTx.savings_to_id ? `saving:${editingTx.savings_to_id}` : '';
+        const tId = editingTx.account_to_id ? `account:${editingTx.account_to_id}` : editingTx.savings_to_id ? `saving:${editingTx.savings_to_id}` : editingTx.lifegoal_to_id ? `lifegoal:${editingTx.lifegoal_to_id}` : '';
         setToId(tId);
 
         setCreatedAt(editingTx.created_at ? getLocalDateString(new Date(editingTx.created_at)) : getLocalDateString(new Date()));
@@ -117,6 +117,8 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
       account_to_id: null,
       savings_from_id: null,
       savings_to_id: null,
+      lifegoal_from_id: null,
+      lifegoal_to_id: null,
       created_at: finalDate.toISOString(),
       exclude_from_quota: type === 'expense' ? !includeInQuota : true,
     };
@@ -127,6 +129,8 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
         data.account_from_id = parseInt(fromId.split(':')[1]);
       } else if (fromId.startsWith('saving:')) {
         data.savings_from_id = parseInt(fromId.split(':')[1]);
+      } else if (fromId.startsWith('lifegoal:')) {
+        data.lifegoal_from_id = parseInt(fromId.split(':')[1]);
       }
     }
     if (type === 'income' || type === 'transfer') {
@@ -134,6 +138,8 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
         data.account_to_id = parseInt(toId.split(':')[1]);
       } else if (toId.startsWith('saving:')) {
         data.savings_to_id = parseInt(toId.split(':')[1]);
+      } else if (toId.startsWith('lifegoal:')) {
+        data.lifegoal_to_id = parseInt(toId.split(':')[1]);
       }
     }
 
@@ -301,6 +307,15 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
                     ))}
                   </optgroup>
                 )}
+                {lifegoals && lifegoals.length > 0 && (
+                  <optgroup label="Impian / Life Goals">
+                    {lifegoals.map(lg => (
+                      <option key={lg.id} value={`lifegoal:${lg.id}`}>
+                        {lg.name} — {fmtRp(lg.balance)} / {fmtRp(lg.target_amount)}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
           )}
@@ -335,6 +350,15 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
                     {savings.map(sav => (
                       <option key={sav.id} value={`saving:${sav.id}`}>
                         {sav.name} — {fmtRp(sav.balance)}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {lifegoals && lifegoals.length > 0 && (
+                  <optgroup label="Impian / Life Goals">
+                    {lifegoals.map(lg => (
+                      <option key={lg.id} value={`lifegoal:${lg.id}`}>
+                        {lg.name} — {fmtRp(lg.balance)} / {fmtRp(lg.target_amount)}
                       </option>
                     ))}
                   </optgroup>

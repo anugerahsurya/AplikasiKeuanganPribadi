@@ -199,6 +199,7 @@ export async function getOrCreateSpreadsheet() {
     sheets: [
       { properties: { title: 'accounts' } },
       { properties: { title: 'savings' } },
+      { properties: { title: 'lifegoals' } },
       { properties: { title: 'transactions' } },
       { properties: { title: 'budgets' } },
       { properties: { title: 'memos' } }
@@ -226,7 +227,8 @@ async function writeHeaders(sheetId) {
     data: [
       { range: 'accounts!A1:E1', values: [['id', 'name', 'category', 'balance', 'created_at']] },
       { range: 'savings!A1:D1', values: [['id', 'name', 'balance', 'created_at']] },
-      { range: 'transactions!A1:L1', values: [['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'notes', 'created_at', 'exclude_from_quota']] },
+      { range: 'lifegoals!A1:F1', values: [['id', 'name', 'target_amount', 'balance', 'image', 'created_at']] },
+      { range: 'transactions!A1:N1', values: [['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'lifegoal_from_id', 'lifegoal_to_id', 'notes', 'created_at', 'exclude_from_quota']] },
       { range: 'budgets!A1:E1', values: [['id', 'category', 'amount', 'is_default', 'created_at']] },
       { range: 'memos!A1:E1', values: [['id', 'title', 'content', 'color', 'date']] }
     ]
@@ -260,7 +262,8 @@ export async function syncAllToGoogleSheets(data) {
       // Clear ranges first (from A2 downwards)
       { range: 'accounts!A2:Z1000', values: Array(999).fill(Array(5).fill('')) },
       { range: 'savings!A2:Z1000', values: Array(999).fill(Array(4).fill('')) },
-      { range: 'transactions!A2:Z10000', values: Array(9999).fill(Array(12).fill('')) },
+      { range: 'lifegoals!A2:Z1000', values: Array(999).fill(Array(6).fill('')) },
+      { range: 'transactions!A2:Z10000', values: Array(9999).fill(Array(14).fill('')) },
       { range: 'budgets!A2:Z1000', values: Array(999).fill(Array(5).fill('')) },
       { range: 'memos!A2:Z1000', values: Array(999).fill(Array(5).fill('')) }
     ]
@@ -282,8 +285,12 @@ export async function syncAllToGoogleSheets(data) {
         values: [['id', 'name', 'balance', 'created_at'], ...formatRows(data.savings, ['id', 'name', 'balance', 'created_at'])]
       },
       {
-        range: `transactions!A1:L${data.transactions.length + 1}`,
-        values: [['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'notes', 'created_at', 'exclude_from_quota'], ...formatRows(data.transactions, ['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'notes', 'created_at', 'exclude_from_quota'])]
+        range: `lifegoals!A1:F${(data.lifegoals || []).length + 1}`,
+        values: [['id', 'name', 'target_amount', 'balance', 'image', 'created_at'], ...formatRows(data.lifegoals || [], ['id', 'name', 'target_amount', 'balance', 'image', 'created_at'])]
+      },
+      {
+        range: `transactions!A1:N${data.transactions.length + 1}`,
+        values: [['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'lifegoal_from_id', 'lifegoal_to_id', 'notes', 'created_at', 'exclude_from_quota'], ...formatRows(data.transactions, ['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'lifegoal_from_id', 'lifegoal_to_id', 'notes', 'created_at', 'exclude_from_quota'])]
       },
       {
         range: `budgets!A1:E${data.budgets.length + 1}`,
@@ -312,7 +319,8 @@ export async function syncAllFromGoogleSheets() {
   const ranges = [
     'accounts!A:E',
     'savings!A:D',
-    'transactions!A:L',
+    'lifegoals!A:F',
+    'transactions!A:N',
     'budgets!A:E',
     'memos!A:E'
   ].map(r => `ranges=${encodeURIComponent(r)}`).join('&');
@@ -362,8 +370,9 @@ export async function syncAllFromGoogleSheets() {
   return {
     accounts: parseSheet(valueRanges[0], ['id', 'name', 'category', 'balance', 'created_at']),
     savings: parseSheet(valueRanges[1], ['id', 'name', 'balance', 'created_at']),
-    transactions: parseSheet(valueRanges[2], ['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'notes', 'created_at', 'exclude_from_quota']),
-    budgets: parseSheet(valueRanges[3], ['id', 'category', 'amount', 'is_default', 'created_at']),
-    memos: parseSheet(valueRanges[4], ['id', 'title', 'content', 'color', 'date'])
+    lifegoals: parseSheet(valueRanges[2], ['id', 'name', 'target_amount', 'balance', 'image', 'created_at']),
+    transactions: parseSheet(valueRanges[3], ['id', 'item_name', 'amount', 'type', 'category', 'account_from_id', 'account_to_id', 'savings_from_id', 'savings_to_id', 'lifegoal_from_id', 'lifegoal_to_id', 'notes', 'created_at', 'exclude_from_quota']),
+    budgets: parseSheet(valueRanges[4], ['id', 'category', 'amount', 'is_default', 'created_at']),
+    memos: parseSheet(valueRanges[5], ['id', 'title', 'content', 'color', 'date'])
   };
 }

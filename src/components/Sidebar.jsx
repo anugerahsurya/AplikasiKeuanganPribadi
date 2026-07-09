@@ -6,7 +6,6 @@ import {
   CreditCard, 
   PiggyBank, 
   Target, 
-  FileText, 
   Settings,
   LogOut,
   User,
@@ -29,7 +28,6 @@ export default function Sidebar({ currentPage, setCurrentPage, onToast }) {
     { id: 'accounts', label: 'Tempat Saldo', icon: CreditCard },
     { id: 'savings', label: 'Tabungan', icon: PiggyBank },
     { id: 'budgeting', label: 'Budgeting', icon: Target },
-    { id: 'memo', label: 'Catatan Keuangan', icon: FileText },
     { id: 'settings', label: 'Pengaturan', icon: Settings },
   ];
 

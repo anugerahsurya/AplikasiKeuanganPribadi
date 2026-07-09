@@ -18,6 +18,7 @@ const DEFAULT_BUDGET_CATEGORIES = [
 let dbState = {
   accounts: [],
   savings: [],
+  lifegoals: [],
   transactions: [],
   budgets: [],
   memos: []
@@ -30,6 +31,9 @@ function loadLocal() {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (raw) {
       dbState = JSON.parse(raw);
+      if (!dbState.lifegoals) {
+        dbState.lifegoals = [];
+      }
     } else {
       initializeEmptyState();
     }
@@ -46,6 +50,7 @@ function initializeEmptyState() {
   dbState = {
     accounts: [],
     savings: [],
+    lifegoals: [],
     transactions: [],
     budgets: DEFAULT_BUDGET_CATEGORIES.map((cat, idx) => ({
       id: idx + 1,
@@ -214,6 +219,51 @@ export async function updateSavingBalance(id, balance) {
   return { changes: 0 };
 }
 
+// ── LIFEGOALS ───────────────────────────────────────────────────────────
+
+export function getLifegoals() {
+  if (!dbState.lifegoals) dbState.lifegoals = [];
+  return [...dbState.lifegoals].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+}
+
+export async function addLifegoal({ name, target_amount, balance, image }) {
+  if (!dbState.lifegoals) dbState.lifegoals = [];
+  const id = dbState.lifegoals.reduce((max, l) => Math.max(max, l.id), 0) + 1;
+  const newLifegoal = {
+    id,
+    name,
+    target_amount: Number(target_amount) || 0,
+    balance: Number(balance) || 0,
+    image: image || null,
+    created_at: new Date().toISOString()
+  };
+
+  dbState.lifegoals.push(newLifegoal);
+  saveLocal();
+  await triggerSheetsSync();
+  return newLifegoal;
+}
+
+export async function deleteLifegoal(id) {
+  if (!dbState.lifegoals) dbState.lifegoals = [];
+  dbState.lifegoals = dbState.lifegoals.filter(l => l.id !== id);
+  saveLocal();
+  await triggerSheetsSync();
+  return { changes: 1 };
+}
+
+export async function updateLifegoalBalance(id, balance) {
+  if (!dbState.lifegoals) dbState.lifegoals = [];
+  const lg = dbState.lifegoals.find(l => l.id === id);
+  if (lg) {
+    lg.balance = Number(balance);
+    saveLocal();
+    await triggerSheetsSync();
+    return { changes: 1 };
+  }
+  return { changes: 0 };
+}
+
 // ── TRANSACTIONS ──────────────────────────────────────────────────────
 
 export function getTransactionsByPeriod(year, month) {
@@ -226,12 +276,14 @@ export function getTransactionsByPeriod(year, month) {
     return d.getFullYear() === targetYear && (d.getMonth() + 1) === targetMonth;
   });
 
-  // Attach account/saving names for UI backwards compatibility
+  // Attach account/saving/lifegoal names for UI backwards compatibility
   return txs.map(t => {
     const accFrom = dbState.accounts.find(a => a.id === t.account_from_id);
     const accTo = dbState.accounts.find(a => a.id === t.account_to_id);
     const savFrom = dbState.savings.find(s => s.id === t.savings_from_id);
     const savTo = dbState.savings.find(s => s.id === t.savings_to_id);
+    const lgFrom = dbState.lifegoals ? dbState.lifegoals.find(l => l.id === t.lifegoal_from_id) : null;
+    const lgTo = dbState.lifegoals ? dbState.lifegoals.find(l => l.id === t.lifegoal_to_id) : null;
 
     return {
       ...t,
@@ -240,7 +292,9 @@ export function getTransactionsByPeriod(year, month) {
       account_to_name: accTo ? accTo.name : null,
       account_to_category: accTo ? accTo.category : null,
       savings_from_name: savFrom ? savFrom.name : null,
-      savings_to_name: savTo ? savTo.name : null
+      savings_to_name: savTo ? savTo.name : null,
+      lifegoal_from_name: lgFrom ? lgFrom.name : null,
+      lifegoal_to_name: lgTo ? lgTo.name : null
     };
   }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
@@ -251,13 +305,17 @@ export function getAllTransactions() {
     const accTo = dbState.accounts.find(a => a.id === t.account_to_id);
     const savFrom = dbState.savings.find(s => s.id === t.savings_from_id);
     const savTo = dbState.savings.find(s => s.id === t.savings_to_id);
+    const lgFrom = dbState.lifegoals ? dbState.lifegoals.find(l => l.id === t.lifegoal_from_id) : null;
+    const lgTo = dbState.lifegoals ? dbState.lifegoals.find(l => l.id === t.lifegoal_to_id) : null;
 
     return {
       ...t,
       account_from_name: accFrom ? accFrom.name : null,
       account_to_name: accTo ? accTo.name : null,
       savings_from_name: savFrom ? savFrom.name : null,
-      savings_to_name: savTo ? savTo.name : null
+      savings_to_name: savTo ? savTo.name : null,
+      lifegoal_from_name: lgFrom ? lgFrom.name : null,
+      lifegoal_to_name: lgTo ? lgTo.name : null
     };
   }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
@@ -268,6 +326,7 @@ export async function addTransaction(data) {
     item_name, amount, type, category,
     account_from_id, account_to_id,
     savings_from_id, savings_to_id,
+    lifegoal_from_id, lifegoal_to_id,
     notes, created_at, exclude_from_quota
   } = data;
 
@@ -284,6 +343,8 @@ export async function addTransaction(data) {
     account_to_id: account_to_id ? Number(account_to_id) : null,
     savings_from_id: savings_from_id ? Number(savings_from_id) : null,
     savings_to_id: savings_to_id ? Number(savings_to_id) : null,
+    lifegoal_from_id: lifegoal_from_id ? Number(lifegoal_from_id) : null,
+    lifegoal_to_id: lifegoal_to_id ? Number(lifegoal_to_id) : null,
     notes: notes || null,
     created_at: now,
     exclude_from_quota: exclude_from_quota ? 1 : 0
@@ -301,6 +362,10 @@ export async function addTransaction(data) {
       const sav = dbState.savings.find(s => s.id === Number(savings_from_id));
       if (sav) sav.balance -= numAmount;
     }
+    if (lifegoal_from_id && dbState.lifegoals) {
+      const lg = dbState.lifegoals.find(l => l.id === Number(lifegoal_from_id));
+      if (lg) lg.balance -= numAmount;
+    }
   } else if (type === 'income') {
     if (account_to_id) {
       const acc = dbState.accounts.find(a => a.id === Number(account_to_id));
@@ -309,6 +374,10 @@ export async function addTransaction(data) {
     if (savings_to_id) {
       const sav = dbState.savings.find(s => s.id === Number(savings_to_id));
       if (sav) sav.balance += numAmount;
+    }
+    if (lifegoal_to_id && dbState.lifegoals) {
+      const lg = dbState.lifegoals.find(l => l.id === Number(lifegoal_to_id));
+      if (lg) lg.balance += numAmount;
     }
   } else if (type === 'transfer') {
     if (account_from_id) {
@@ -319,6 +388,10 @@ export async function addTransaction(data) {
       const sav = dbState.savings.find(s => s.id === Number(savings_from_id));
       if (sav) sav.balance -= numAmount;
     }
+    if (lifegoal_from_id && dbState.lifegoals) {
+      const lg = dbState.lifegoals.find(l => l.id === Number(lifegoal_from_id));
+      if (lg) lg.balance -= numAmount;
+    }
     if (account_to_id) {
       const acc = dbState.accounts.find(a => a.id === Number(account_to_id));
       if (acc) acc.balance += numAmount;
@@ -326,6 +399,10 @@ export async function addTransaction(data) {
     if (savings_to_id) {
       const sav = dbState.savings.find(s => s.id === Number(savings_to_id));
       if (sav) sav.balance += numAmount;
+    }
+    if (lifegoal_to_id && dbState.lifegoals) {
+      const lg = dbState.lifegoals.find(l => l.id === Number(lifegoal_to_id));
+      if (lg) lg.balance += numAmount;
     }
   }
 
@@ -339,7 +416,7 @@ export async function deleteTransaction(id) {
   if (txIndex === -1) return { changes: 0 };
 
   const tx = dbState.transactions[txIndex];
-  const { amount, type, account_from_id, account_to_id, savings_from_id, savings_to_id } = tx;
+  const { amount, type, account_from_id, account_to_id, savings_from_id, savings_to_id, lifegoal_from_id, lifegoal_to_id } = tx;
   const numAmount = Number(amount);
 
   // Reverse Balances
@@ -352,6 +429,10 @@ export async function deleteTransaction(id) {
       const sav = dbState.savings.find(s => s.id === Number(savings_from_id));
       if (sav) sav.balance += numAmount;
     }
+    if (lifegoal_from_id && dbState.lifegoals) {
+      const lg = dbState.lifegoals.find(l => l.id === Number(lifegoal_from_id));
+      if (lg) lg.balance += numAmount;
+    }
   } else if (type === 'income') {
     if (account_to_id) {
       const acc = dbState.accounts.find(a => a.id === Number(account_to_id));
@@ -360,6 +441,10 @@ export async function deleteTransaction(id) {
     if (savings_to_id) {
       const sav = dbState.savings.find(s => s.id === Number(savings_to_id));
       if (sav) sav.balance -= numAmount;
+    }
+    if (lifegoal_to_id && dbState.lifegoals) {
+      const lg = dbState.lifegoals.find(l => l.id === Number(lifegoal_to_id));
+      if (lg) lg.balance -= numAmount;
     }
   } else if (type === 'transfer') {
     if (account_from_id) {
@@ -370,6 +455,10 @@ export async function deleteTransaction(id) {
       const sav = dbState.savings.find(s => s.id === Number(savings_from_id));
       if (sav) sav.balance += numAmount;
     }
+    if (lifegoal_from_id && dbState.lifegoals) {
+      const lg = dbState.lifegoals.find(l => l.id === Number(lifegoal_from_id));
+      if (lg) lg.balance += numAmount;
+    }
     if (account_to_id) {
       const acc = dbState.accounts.find(a => a.id === Number(account_to_id));
       if (acc) acc.balance -= numAmount;
@@ -377,6 +466,10 @@ export async function deleteTransaction(id) {
     if (savings_to_id) {
       const sav = dbState.savings.find(s => s.id === Number(savings_to_id));
       if (sav) sav.balance -= numAmount;
+    }
+    if (lifegoal_to_id && dbState.lifegoals) {
+      const lg = dbState.lifegoals.find(l => l.id === Number(lifegoal_to_id));
+      if (lg) lg.balance -= numAmount;
     }
   }
 
@@ -606,6 +699,7 @@ export async function importDatabase(data) {
   dbState = {
     accounts: Array.isArray(data.accounts) ? data.accounts : [],
     savings: Array.isArray(data.savings) ? data.savings : [],
+    lifegoals: Array.isArray(data.lifegoals) ? data.lifegoals : [],
     transactions: Array.isArray(data.transactions) ? data.transactions : [],
     budgets: Array.isArray(data.budgets) ? data.budgets : [],
     memos: Array.isArray(data.memos) ? data.memos : []
@@ -875,6 +969,7 @@ async function mergeLocalAndCloud(sheetsData) {
   dbState = {
     accounts: mergedAccounts,
     savings: mergedSavings,
+    lifegoals: dbState.lifegoals || [],
     transactions: mergedTransactions,
     budgets: mergedBudgets,
     memos: mergedMemos

@@ -17,7 +17,7 @@ import {
   Edit3, 
   Trash2 
 } from 'lucide-react';
-import { getAccounts, getTransactionsByPeriod, addTransaction, deleteTransaction, getDashboardSummary, getSavings } from '../services/db';
+import { getAccounts, getTransactionsByPeriod, addTransaction, deleteTransaction, getDashboardSummary, getSavings, getLifegoals } from '../services/db';
 import { fmtRp, fmtDate, MONTHS } from '../utils/format';
 import TransactionModal from '../components/TransactionModal';
 import CategoryIcon from '../components/CategoryIcon';
@@ -30,6 +30,7 @@ export default function Overview({ setCurrentPage, onToast, refreshTrigger, trig
 
   const [accounts, setAccounts] = useState([]);
   const [savings, setSavings] = useState([]);
+  const [lifegoals, setLifegoals] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState({ income: 0, expense: 0, net: 0 });
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,11 +45,13 @@ export default function Overview({ setCurrentPage, onToast, refreshTrigger, trig
   const loadData = () => {
     const accs = getAccounts();
     const savs = getSavings();
+    const lgs = getLifegoals();
     const txs = getTransactionsByPeriod(period.year, period.month);
     const sum = getDashboardSummary(period.year, period.month);
     
     setAccounts(accs);
     setSavings(savs);
+    setLifegoals(lgs);
     setTransactions(txs);
     setSummary(sum);
   };
@@ -312,8 +315,11 @@ export default function Overview({ setCurrentPage, onToast, refreshTrigger, trig
               const parts = [];
               if (tx.account_from_name) parts.push(`dari ${tx.account_from_name}`);
               else if (tx.savings_from_name) parts.push(`dari ${tx.savings_from_name}`);
+              else if (tx.lifegoal_from_name) parts.push(`dari ${tx.lifegoal_from_name}`);
+              
               if (tx.account_to_name) parts.push(`ke ${tx.account_to_name}`);
               else if (tx.savings_to_name) parts.push(`ke ${tx.savings_to_name}`);
+              else if (tx.lifegoal_to_name) parts.push(`ke ${tx.lifegoal_to_name}`);
               const platform = parts.join(', ');
 
               return (
@@ -361,6 +367,7 @@ export default function Overview({ setCurrentPage, onToast, refreshTrigger, trig
         editingTx={editingTx}
         accounts={accounts}
         savings={savings}
+        lifegoals={lifegoals}
       />
     </div>
   );

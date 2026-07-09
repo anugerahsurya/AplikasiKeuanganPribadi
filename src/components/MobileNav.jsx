@@ -21,7 +21,7 @@ export default function MobileNav({ currentPage, setCurrentPage }) {
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = currentPage === item.id || 
-          (item.id === 'settings' && ['accounts', 'memo', 'overview'].includes(currentPage));
+          (item.id === 'settings' && ['accounts', 'overview'].includes(currentPage));
         
         return (
           <button

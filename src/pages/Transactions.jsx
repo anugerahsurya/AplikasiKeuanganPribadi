@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, RefreshCw, FileDown, Search, Edit3, Trash2, Inbox, CheckSquare, Square, Calendar } from 'lucide-react';
-import { getAccounts, getAllTransactions, addTransaction, deleteTransaction, updateTransactionsDate, getSavings } from '../services/db';
+import { getAccounts, getAllTransactions, addTransaction, deleteTransaction, updateTransactionsDate, getSavings, getLifegoals } from '../services/db';
 import { fmtRp, fmtDate } from '../utils/format';
 import { getGoogleUser, isLoggedIn } from '../services/googleSheets';
 import TransactionModal from '../components/TransactionModal';
@@ -11,6 +11,7 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
   const [filteredTxs, setFilteredTxs] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [savings, setSavings] = useState([]);
+  const [lifegoals, setLifegoals] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   
@@ -65,9 +66,11 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
     const allTxs = getAllTransactions();
     const accs = getAccounts();
     const savs = getSavings();
+    const lgs = getLifegoals();
     setTransactions(allTxs);
     setAccounts(accs);
     setSavings(savs);
+    setLifegoals(lgs);
     applyFilters(allTxs, filter, search);
   };
 
@@ -225,8 +228,11 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
               const parts = [];
               if (tx.account_from_name) parts.push(`dari ${tx.account_from_name}`);
               else if (tx.savings_from_name) parts.push(`dari ${tx.savings_from_name}`);
+              else if (tx.lifegoal_from_name) parts.push(`dari ${tx.lifegoal_from_name}`);
+              
               if (tx.account_to_name) parts.push(`ke ${tx.account_to_name}`);
               else if (tx.savings_to_name) parts.push(`ke ${tx.savings_to_name}`);
+              else if (tx.lifegoal_to_name) parts.push(`ke ${tx.lifegoal_to_name}`);
               const platform = parts.join(', ');
 
               return (
@@ -457,6 +463,7 @@ export default function Transactions({ onToast, refreshTrigger, triggerRefresh }
         editingTx={editingTx}
         accounts={accounts}
         savings={savings}
+        lifegoals={lifegoals}
       />
     </div>
   );

@@ -15,7 +15,6 @@ import Dashboard from './pages/Dashboard';
 import Accounts from './pages/Accounts';
 import Savings from './pages/Savings';
 import Budgeting from './pages/Budgeting';
-import Memo from './pages/Memo';
 import Settings from './pages/Settings';
 import Guide from './pages/Guide';
 
@@ -204,14 +203,7 @@ export default function App() {
             triggerRefresh={triggerRefresh}
           />
         );
-      case 'memo':
-        return (
-          <Memo 
-            onToast={showToast} 
-            refreshTrigger={refreshTrigger}
-            triggerRefresh={triggerRefresh}
-          />
-        );
+
       case 'settings':
         return (
           <Settings 
