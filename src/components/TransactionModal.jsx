@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
-import { CAT_ICONS } from '../utils/format';
+import { CAT_ICONS, fmtRp } from '../utils/format';
 import CategoryIcon from './CategoryIcon';
 import { ArrowUpRight, ArrowDownLeft, RefreshCw } from 'lucide-react';
 import { getBudgets } from '../services/db';
@@ -276,7 +276,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
                   <optgroup label="Rekening / Dompet">
                     {accounts.map(acc => (
                       <option key={acc.id} value={`account:${acc.id}`}>
-                        {acc.name} ({acc.category}) — Rp {acc.balance.toLocaleString('id-ID')}
+                        {acc.name} ({acc.category}) — {fmtRp(acc.balance)}
                       </option>
                     ))}
                   </optgroup>
@@ -285,7 +285,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
                   <optgroup label="Celengan Tabungan">
                     {savings.map(sav => (
                       <option key={sav.id} value={`saving:${sav.id}`}>
-                        {sav.name} — Rp {sav.balance.toLocaleString('id-ID')}
+                        {sav.name} — {fmtRp(sav.balance)}
                       </option>
                     ))}
                   </optgroup>
@@ -314,7 +314,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
                   <optgroup label="Rekening / Dompet">
                     {accounts.map(acc => (
                       <option key={acc.id} value={`account:${acc.id}`}>
-                        {acc.name} ({acc.category}) — Rp {acc.balance.toLocaleString('id-ID')}
+                        {acc.name} ({acc.category}) — {fmtRp(acc.balance)}
                       </option>
                     ))}
                   </optgroup>
@@ -323,7 +323,7 @@ export default function TransactionModal({ isOpen, onClose, onSave, editingTx, a
                   <optgroup label="Celengan Tabungan">
                     {savings.map(sav => (
                       <option key={sav.id} value={`saving:${sav.id}`}>
-                        {sav.name} — Rp {sav.balance.toLocaleString('id-ID')}
+                        {sav.name} — {fmtRp(sav.balance)}
                       </option>
                     ))}
                   </optgroup>
