@@ -136,31 +136,20 @@ export default function App() {
   };
 
 
+  // Apply theme attributes immediately to ensure initial loading screen matches the preset theme
+  document.documentElement.setAttribute('data-theme', theme);
+  const currentBodyClasses = document.body.className.split(' ').filter(c => !c.startsWith('theme-'));
+  document.body.className = [...currentBodyClasses, `theme-${colorTheme}`].join(' ');
+
   if (!dbInitialized) {
     return (
-      <div style={{
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#0d0f18',
-        color: '#a5b4fc',
-        fontFamily: 'sans-serif'
-      }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          border: '3px solid rgba(165,180,252,0.3)',
-          borderTopColor: '#a5b4fc',
-          borderRadius: '50%',
-          animation: 'spin 0.7s linear infinite',
-          marginBottom: '16px'
-        }}></div>
-        <div style={{ fontSize: '14px', fontWeight: 600 }}>Menyiapkan Ituang...</div>
-        <style>{`
-          @keyframes spin { to { transform: rotate(360deg); } }
-        `}</style>
+      <div className="ituang-loader-container">
+        <div className="ituang-premium-loader">
+          <div className="ituang-loader-glow"></div>
+          <div className="ituang-loader-ring"></div>
+          <div className="ituang-loader-ring"></div>
+        </div>
+        <div className="ituang-loader-text">Menyiapkan Ituang...</div>
       </div>
     );
   }

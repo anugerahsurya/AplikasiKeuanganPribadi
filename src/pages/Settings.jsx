@@ -919,6 +919,31 @@ export default function Settings({ onToast, triggerRefresh, onLogout, authUser }
           </div>
         </div>
       </Modal>
+
+      {/* PREMIUM LOADER OVERLAY */}
+      {syncing && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'hsl(var(--bg-app) / 0.7)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 99999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div className="ituang-premium-loader">
+            <div className="ituang-loader-glow"></div>
+            <div className="ituang-loader-ring"></div>
+            <div className="ituang-loader-ring"></div>
+          </div>
+          <div className="ituang-loader-text">Sinkronisasi sedang berlangsung...</div>
+        </div>
+      )}
     </div>
   );
 }

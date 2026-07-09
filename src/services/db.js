@@ -539,12 +539,14 @@ export function getBudgetProgress(year, month) {
     if (!t.created_at || t.type !== 'expense') return;
     const d = new Date(t.created_at);
     if (d.getFullYear() === targetYear && (d.getMonth() + 1) === targetMonth) {
-      spentMap[t.category] = (spentMap[t.category] || 0) + t.amount;
+      const catKey = (t.category || '').toString().trim().toLowerCase();
+      spentMap[catKey] = (spentMap[catKey] || 0) + t.amount;
     }
   });
 
   return dbState.budgets.map(b => {
-    const spent = spentMap[b.category] || 0;
+    const catKey = (b.category || '').toString().trim().toLowerCase();
+    const spent = spentMap[catKey] || 0;
     const remaining = b.amount - spent;
     const pct = b.amount > 0 ? (spent / b.amount) * 100 : 0;
     return {
